@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta
+    name="description"
+    content="Sistema moderno para controle de vendas e cálculo de comissão de 2%."
+  >
+  <title>Controle de Vendas e Comissão</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+  <div class="app">
+    <aside class="sidebar" aria-label="Informações do usuário">
+      <div class="brand">
+        <span class="brand__icon" aria-hidden="true">%</span>
+        <div>
+          <strong>Projeto Comissão</strong>
+          <span>Controle de vendas</span>
+        </div>
+      </div>
+
+      <section class="perfil">
+        <img
+          src="assets/edivandro-lima.jpg"
+          alt="Foto de perfil de Edivandro Lima"
+          class="perfil__foto"
+        >
+
+        <h1>Edivandro Lima</h1>
+        <p>Controle diário de vendas e comissão</p>
+      </section>
+
+      <div class="taxa">
+        <span>Taxa de comissão</span>
+        <strong>2%</strong>
+      </div>
+
+      <p class="sidebar__texto">
+        Registre suas vendas, consulte os resultados por mês e acompanhe o total
+        da comissão que você receberá.
+      </p>
+    </aside>
+
+    <main class="conteudo">
+      <header class="topo">
+        <div>
+          <span class="topo__legenda">Painel financeiro</span>
+          <h2>Controle de vendas</h2>
+          <p>Acompanhe seus resultados de forma simples e organizada.</p>
+        </div>
+
+        <div class="topo__data" id="data-atual" aria-live="polite"></div>
+      </header>
+
+      <section class="resumo" aria-label="Resumo das vendas">
+        <article class="card-resumo">
+          <span>Total vendido</span>
+          <strong id="total-vendas">R$ 0,00</strong>
+          <small>Valores do período selecionado</small>
+        </article>
+
+        <article class="card-resumo card-resumo--destaque">
+          <span>Comissão de 2%</span>
+          <strong id="total-comissao">R$ 0,00</strong>
+          <small>Valor estimado a receber</small>
+        </article>
+
+        <article class="card-resumo">
+          <span>Quantidade de vendas</span>
+          <strong id="quantidade-vendas">0</strong>
+          <small>Registros encontrados</small>
+        </article>
+      </section>
+
+      <section class="grid-principal">
+        <article class="card">
+          <div class="card__cabecalho">
+            <div>
+              <span class="card__legenda">Novo registro</span>
+              <h3>Registrar venda</h3>
+            </div>
+          </div>
+
+          <form id="form-venda" novalidate>
+            <div class="campo">
+              <label for="valor-venda">Valor da venda</label>
+              <div class="campo-moeda">
+                <span aria-hidden="true">R$</span>
+                <input
+                  type="number"
+                  id="valor-venda"
+                  min="0.01"
+                  step="0.01"
+                  inputmode="decimal"
+                  placeholder="0,00"
+                  required
+                >
+              </div>
+            </div>
+
+            <div class="campo">
+              <label for="data-venda">Data da venda</label>
+              <input type="date" id="data-venda" required>
+            </div>
+
+            <div class="campo">
+              <label for="cliente">Cliente <span>(opcional)</span></label>
+              <input
+                type="text"
+                id="cliente"
+                maxlength="80"
+                placeholder="Nome do cliente"
+              >
+            </div>
+
+            <button type="submit" class="botao botao--principal">
+              Registrar venda
+            </button>
+          </form>
+
+          <p id="mensagem" class="mensagem" role="status" aria-live="polite"></p>
+        </article>
+
+        <article class="card">
+          <div class="card__cabecalho">
+            <div>
+              <span class="card__legenda">Consulta</span>
+              <h3>Filtrar período</h3>
+            </div>
+          </div>
+
+          <div class="filtros">
+            <div class="campo">
+              <label for="filtro-mes">Mês</label>
+              <select id="filtro-mes">
+                <option value="todos">Todos os meses</option>
+                <option value="0">Janeiro</option>
+                <option value="1">Fevereiro</option>
+                <option value="2">Março</option>
+                <option value="3">Abril</option>
+                <option value="4">Maio</option>
+                <option value="5">Junho</option>
+                <option value="6">Julho</option>
+                <option value="7">Agosto</option>
+                <option value="8">Setembro</option>
+                <option value="9">Outubro</option>
+                <option value="10">Novembro</option>
+                <option value="11">Dezembro</option>
+              </select>
+            </div>
+
+            <div class="campo">
+              <label for="filtro-ano">Ano</label>
+              <input type="number" id="filtro-ano" min="2000" max="2100">
+            </div>
+
+            <button
+              type="button"
+              id="botao-limpar-filtros"
+              class="botao botao--secundario"
+            >
+              Mostrar todas
+            </button>
+          </div>
+
+          <div class="previsao">
+            <span>Exemplo de comissão</span>
+            <p>
+              Em uma venda de <strong>R$ 10.000,00</strong>, você receberá
+              <strong>R$ 200,00</strong>.
+            </p>
+          </div>
+        </article>
+      </section>
+
+      <section class="card historico">
+        <div class="card__cabecalho card__cabecalho--linha">
+          <div>
+            <span class="card__legenda">Lançamentos</span>
+            <h3>Histórico de vendas</h3>
+          </div>
+
+          <button
+            type="button"
+            id="botao-apagar-tudo"
+            class="botao botao--perigo"
+          >
+            Apagar tudo
+          </button>
+        </div>
+
+        <div class="tabela-container">
+          <table>
+            <thead>
+              <tr>
+                <th scope="col">Data</th>
+                <th scope="col">Cliente</th>
+                <th scope="col">Venda</th>
+                <th scope="col">Comissão</th>
+                <th scope="col">Ação</th>
+              </tr>
+            </thead>
+            <tbody id="lista-vendas"></tbody>
+          </table>
+        </div>
+
+        <p id="sem-vendas" class="sem-vendas">
+          Nenhuma venda registrada neste período.
+        </p>
+      </section>
+
+      <footer class="rodape">
+        <p>Desenvolvido por <strong>Edivandro Lima</strong></p>
+      </footer>
+    </main>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
