@@ -1,22 +1,33 @@
-# Projeto Comissão
+# Controle de Vendas e Comissão com Splide.js
 
-Sistema responsivo para registrar vendas e calcular automaticamente uma comissão de 2%.
+Aplicação web responsiva para registrar vendas, calcular automaticamente uma
+comissão de 2% e apresentar insights em um carrossel.
 
 ## Funcionalidades
 
 - Registro de venda por data;
 - Campo opcional para cliente;
-- Cálculo automático de comissão;
+- Comissão automática de 2%;
+- Total vendido e quantidade de vendas;
 - Filtro por mês e ano;
-- Total vendido, total de comissão e quantidade de vendas;
-- Exclusão individual ou geral;
-- Armazenamento no navegador com localStorage;
-- Layout responsivo;
-- Foto de perfil personalizada.
+- Histórico de registros;
+- Exclusão individual e geral;
+- Armazenamento com localStorage;
+- Carrossel responsivo de insights com Splide.js;
+- Melhor venda, comissão acumulada, ticket médio e melhor dia;
+- Layout responsivo e acessível.
+
+## Tecnologias
+
+- HTML5
+- CSS3
+- JavaScript
+- Splide.js
+- localStorage
 
 ## Como executar
 
-Abra o arquivo `index.html` no navegador ou utilize a extensão Live Server no VS Code.
+Abra o arquivo `index.html` no navegador ou utilize a extensão Live Server.
 
 ## Autor
 

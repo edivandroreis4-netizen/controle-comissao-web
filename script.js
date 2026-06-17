@@ -21,7 +21,19 @@ const botaoLimparFiltros = document.querySelector("#botao-limpar-filtros");
 const botaoApagarTudo = document.querySelector("#botao-apagar-tudo");
 const dataAtualElemento = document.querySelector("#data-atual");
 
+const insightMelhorVenda = document.querySelector("#insight-melhor-venda");
+const insightMelhorVendaTexto = document.querySelector(
+  "#insight-melhor-venda-texto"
+);
+const insightComissao = document.querySelector("#insight-comissao");
+const insightTicketMedio = document.querySelector("#insight-ticket-medio");
+const insightMelhorDia = document.querySelector("#insight-melhor-dia");
+const insightMelhorDiaTexto = document.querySelector(
+  "#insight-melhor-dia-texto"
+);
+
 let vendas = carregarVendas();
+let carrosselInsights;
 
 function carregarVendas() {
   const vendasSalvas = localStorage.getItem(CHAVE_LOCAL_STORAGE);
@@ -77,6 +89,46 @@ function definirDatasIniciais() {
   });
 }
 
+function iniciarCarrossel() {
+  const reduzirMovimento = window.matchMedia(
+    "(prefers-reduced-motion: reduce)"
+  ).matches;
+
+  carrosselInsights = new Splide("#carrossel-insights", {
+    type: "slide",
+    perPage: 3,
+    perMove: 1,
+    gap: "1rem",
+    pagination: true,
+    arrows: true,
+    drag: true,
+    keyboard: "focused",
+    speed: reduzirMovimento ? 0 : 450,
+    breakpoints: {
+      1100: {
+        perPage: 2
+      },
+      700: {
+        perPage: 1
+      }
+    },
+    i18n: {
+      prev: "Voltar para o insight anterior",
+      next: "Avançar para o próximo insight",
+      first: "Ir para o primeiro insight",
+      last: "Ir para o último insight",
+      slideX: "Ir para o insight %s",
+      pageX: "Ir para a página %s",
+      play: "Iniciar rotação automática",
+      pause: "Pausar rotação automática",
+      carousel: "Carrossel de insights",
+      select: "Selecione um insight para exibir"
+    }
+  });
+
+  carrosselInsights.mount();
+}
+
 function mostrarMensagem(texto, tipo) {
   mensagem.textContent = texto;
   mensagem.className = `mensagem ${tipo}`;
@@ -105,6 +157,59 @@ function obterVendasFiltradas() {
   });
 }
 
+function calcularMelhorDia(vendasExibidas) {
+  const totaisPorDia = vendasExibidas.reduce((resultado, venda) => {
+    resultado[venda.data] = (resultado[venda.data] || 0) + venda.valor;
+    return resultado;
+  }, {});
+
+  const dias = Object.entries(totaisPorDia);
+
+  if (dias.length === 0) {
+    return null;
+  }
+
+  const [data, total] = dias.reduce((melhor, atual) => {
+    return atual[1] > melhor[1] ? atual : melhor;
+  });
+
+  return { data, total };
+}
+
+function atualizarInsights(vendasExibidas, totalVendido, totalComissao) {
+  if (vendasExibidas.length === 0) {
+    insightMelhorVenda.textContent = formatarMoeda(0);
+    insightMelhorVendaTexto.textContent =
+      "Registre uma venda para gerar este indicador.";
+    insightComissao.textContent = formatarMoeda(0);
+    insightTicketMedio.textContent = formatarMoeda(0);
+    insightMelhorDia.textContent = "Sem dados";
+    insightMelhorDiaTexto.textContent =
+      "O sistema identificará o dia com maior total vendido.";
+    return;
+  }
+
+  const melhorVenda = vendasExibidas.reduce((maior, venda) => {
+    return venda.valor > maior.valor ? venda : maior;
+  });
+
+  const ticketMedio = totalVendido / vendasExibidas.length;
+  const melhorDia = calcularMelhorDia(vendasExibidas);
+
+  insightMelhorVenda.textContent = formatarMoeda(melhorVenda.valor);
+  insightMelhorVendaTexto.textContent =
+    `Registrada em ${formatarData(melhorVenda.data)}${
+      melhorVenda.cliente ? ` para ${melhorVenda.cliente}` : ""
+    }.`;
+
+  insightComissao.textContent = formatarMoeda(totalComissao);
+  insightTicketMedio.textContent = formatarMoeda(ticketMedio);
+
+  insightMelhorDia.textContent = formatarData(melhorDia.data);
+  insightMelhorDiaTexto.textContent =
+    `${formatarMoeda(melhorDia.total)} em vendas nesse dia.`;
+}
+
 function atualizarResumo(vendasExibidas) {
   const totalVendido = vendasExibidas.reduce(
     (acumulador, venda) => acumulador + venda.valor,
@@ -119,6 +224,8 @@ function atualizarResumo(vendasExibidas) {
   totalVendasElemento.textContent = formatarMoeda(totalVendido);
   totalComissaoElemento.textContent = formatarMoeda(totalComissao);
   quantidadeVendasElemento.textContent = vendasExibidas.length;
+
+  atualizarInsights(vendasExibidas, totalVendido, totalComissao);
 }
 
 function criarCelula(texto) {
@@ -206,9 +313,9 @@ function adicionarVenda(evento) {
   vendas.push(novaVenda);
   salvarVendas();
 
-  const dataSelecionada = new Date(`${dataVenda}T12:00:00`);
-  filtroMes.value = String(dataSelecionada.getMonth());
-  filtroAno.value = String(dataSelecionada.getFullYear());
+  const [ano, mes] = dataVenda.split("-");
+  filtroMes.value = String(Number(mes) - 1);
+  filtroAno.value = ano;
 
   renderizarVendas();
 
@@ -278,4 +385,5 @@ botaoLimparFiltros.addEventListener("click", limparFiltros);
 botaoApagarTudo.addEventListener("click", apagarTodasAsVendas);
 
 definirDatasIniciais();
+iniciarCarrossel();
 renderizarVendas();

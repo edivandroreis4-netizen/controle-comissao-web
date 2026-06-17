@@ -3,19 +3,29 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
   <meta
     name="description"
-    content="Sistema moderno para controle de vendas e cálculo de comissão de 2%."
+    content="Sistema para registrar vendas e calcular automaticamente comissão de 2%."
   >
+
   <title>Controle de Vendas e Comissão</title>
+
+  <!-- Splide.js: versão fixa para evitar alterações inesperadas -->
+  <link
+    rel="stylesheet"
+    href="https://cdn.jsdelivr.net/npm/@splidejs/splide@4.1.4/dist/css/splide.min.css"
+  >
+
   <link rel="stylesheet" href="style.css">
 </head>
 
 <body>
   <div class="app">
-    <aside class="sidebar" aria-label="Informações do usuário">
+    <aside class="sidebar" aria-label="Informações do projeto">
       <div class="brand">
         <span class="brand__icon" aria-hidden="true">%</span>
+
         <div>
           <strong>Projeto Comissão</strong>
           <span>Controle de vendas</span>
@@ -75,6 +85,71 @@
         </article>
       </section>
 
+      <!-- Carrossel de insights -->
+      <section class="card insights" aria-labelledby="titulo-insights">
+        <div class="card__cabecalho card__cabecalho--linha">
+          <div>
+            <span class="card__legenda">Análise rápida</span>
+            <h3 id="titulo-insights">Insights do período</h3>
+          </div>
+
+          <p class="insights__ajuda">
+            Use as setas ou arraste no celular.
+          </p>
+        </div>
+
+        <div
+          id="carrossel-insights"
+          class="splide"
+          role="group"
+          aria-label="Indicadores e insights das vendas"
+        >
+          <div class="splide__track">
+            <ul class="splide__list">
+              <li class="splide__slide">
+                <article class="insight-card">
+                  <span class="insight-card__icone" aria-hidden="true">★</span>
+                  <span class="insight-card__rotulo">Melhor venda</span>
+                  <strong id="insight-melhor-venda">R$ 0,00</strong>
+                  <p id="insight-melhor-venda-texto">
+                    Registre uma venda para gerar este indicador.
+                  </p>
+                </article>
+              </li>
+
+              <li class="splide__slide">
+                <article class="insight-card">
+                  <span class="insight-card__icone" aria-hidden="true">%</span>
+                  <span class="insight-card__rotulo">Comissão acumulada</span>
+                  <strong id="insight-comissao">R$ 0,00</strong>
+                  <p>Total estimado a receber no período selecionado.</p>
+                </article>
+              </li>
+
+              <li class="splide__slide">
+                <article class="insight-card">
+                  <span class="insight-card__icone" aria-hidden="true">↗</span>
+                  <span class="insight-card__rotulo">Ticket médio</span>
+                  <strong id="insight-ticket-medio">R$ 0,00</strong>
+                  <p>Valor médio calculado entre as vendas encontradas.</p>
+                </article>
+              </li>
+
+              <li class="splide__slide">
+                <article class="insight-card">
+                  <span class="insight-card__icone" aria-hidden="true">▣</span>
+                  <span class="insight-card__rotulo">Melhor dia</span>
+                  <strong id="insight-melhor-dia">Sem dados</strong>
+                  <p id="insight-melhor-dia-texto">
+                    O sistema identificará o dia com maior total vendido.
+                  </p>
+                </article>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
       <section class="grid-principal">
         <article class="card">
           <div class="card__cabecalho">
@@ -85,10 +160,12 @@
           </div>
 
           <form id="form-venda" novalidate>
-            <div class="campo">
+            <div class="campo campo--total">
               <label for="valor-venda">Valor da venda</label>
+
               <div class="campo-moeda">
                 <span aria-hidden="true">R$</span>
+
                 <input
                   type="number"
                   id="valor-venda"
@@ -107,7 +184,10 @@
             </div>
 
             <div class="campo">
-              <label for="cliente">Cliente <span>(opcional)</span></label>
+              <label for="cliente">
+                Cliente <span>(opcional)</span>
+              </label>
+
               <input
                 type="text"
                 id="cliente"
@@ -116,12 +196,20 @@
               >
             </div>
 
-            <button type="submit" class="botao botao--principal">
+            <button
+              type="submit"
+              class="botao botao--principal campo--total"
+            >
               Registrar venda
             </button>
           </form>
 
-          <p id="mensagem" class="mensagem" role="status" aria-live="polite"></p>
+          <p
+            id="mensagem"
+            class="mensagem"
+            role="status"
+            aria-live="polite"
+          ></p>
         </article>
 
         <article class="card">
@@ -135,6 +223,7 @@
           <div class="filtros">
             <div class="campo">
               <label for="filtro-mes">Mês</label>
+
               <select id="filtro-mes">
                 <option value="todos">Todos os meses</option>
                 <option value="0">Janeiro</option>
@@ -154,7 +243,13 @@
 
             <div class="campo">
               <label for="filtro-ano">Ano</label>
-              <input type="number" id="filtro-ano" min="2000" max="2100">
+
+              <input
+                type="number"
+                id="filtro-ano"
+                min="2000"
+                max="2100"
+              >
             </div>
 
             <button
@@ -168,6 +263,7 @@
 
           <div class="previsao">
             <span>Exemplo de comissão</span>
+
             <p>
               Em uma venda de <strong>R$ 10.000,00</strong>, você receberá
               <strong>R$ 200,00</strong>.
@@ -203,6 +299,7 @@
                 <th scope="col">Ação</th>
               </tr>
             </thead>
+
             <tbody id="lista-vendas"></tbody>
           </table>
         </div>
@@ -218,6 +315,7 @@
     </main>
   </div>
 
+  <script src="https://cdn.jsdelivr.net/npm/@splidejs/splide@4.1.4/dist/js/splide.min.js"></script>
   <script src="script.js"></script>
 </body>
 </html>
