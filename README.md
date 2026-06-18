@@ -1,21 +1,23 @@
-# Controle de Vendas e Comissão com Splide.js
+# Controle de Vendas e Comissão - versão com metas
 
-Aplicação web responsiva para registrar vendas, calcular automaticamente uma
-comissão de 2% e apresentar insights em um carrossel.
+Aplicação web responsiva para registrar vendas, calcular automaticamente a
+comissão de 2% e acompanhar metas de bonificação.
 
-## Funcionalidades
+## Novidades desta versão
 
-- Registro de venda por data;
-- Campo opcional para cliente;
-- Comissão automática de 2%;
-- Total vendido e quantidade de vendas;
-- Filtro por mês e ano;
-- Histórico de registros;
-- Exclusão individual e geral;
-- Armazenamento com localStorage;
-- Carrossel responsivo de insights com Splide.js;
-- Melhor venda, comissão acumulada, ticket médio e melhor dia;
-- Layout responsivo e acessível.
+- Carrossel de insights ajustado para não cobrir os números;
+- Metas de vendas com faixas de bonificação;
+- Barra de progresso da próxima meta;
+- Lista de metas batidas e próximas metas;
+- Animação de celebração ao alcançar uma meta;
+- Layout moderno e responsivo.
+
+## Regras de metas
+
+- R$ 200.000,00 = R$ 400,00
+- R$ 250.000,00 = R$ 600,00
+- R$ 300.000,00 = R$ 800,00
+- R$ 350.000,00 = R$ 1.000,00
 
 ## Tecnologias
 
@@ -32,3 +34,19 @@ Abra o arquivo `index.html` no navegador ou utilize a extensão Live Server.
 ## Autor
 
 Desenvolvido por Edivandro Lima.
+
+
+## PWA — aplicativo instalável
+
+Esta versão também pode ser instalada no celular ou computador.
+
+Arquivos adicionados:
+
+- `manifest.json`: nome, cores, ícones e modo de exibição;
+- `service-worker.js`: cache e funcionamento offline básico;
+- `offline.html`: tela exibida quando a navegação não está disponível;
+- `icons/`: ícones para instalação.
+
+Depois de publicar na Vercel, abra o site no Chrome ou Edge e use o botão **Instalar aplicativo** quando ele aparecer.
+
+> Os dados continuam armazenados no `localStorage` de cada dispositivo. A PWA não sincroniza automaticamente notebook e celular.

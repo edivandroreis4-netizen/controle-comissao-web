@@ -3,29 +3,24 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-  <meta
-    name="description"
-    content="Sistema para registrar vendas e calcular automaticamente comissão de 2%."
-  >
-
+  <meta name="description" content="Sistema para registrar vendas, acompanhar comissão de 2% e metas por período.">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Comissão">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="icons/icon-192.png" sizes="192x192">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
   <title>Controle de Vendas e Comissão</title>
 
-  <!-- Splide.js: versão fixa para evitar alterações inesperadas -->
-  <link
-    rel="stylesheet"
-    href="https://cdn.jsdelivr.net/npm/@splidejs/splide@4.1.4/dist/css/splide.min.css"
-  >
-
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@splidejs/splide@4.1.4/dist/css/splide.min.css">
   <link rel="stylesheet" href="style.css">
 </head>
-
 <body>
   <div class="app">
     <aside class="sidebar" aria-label="Informações do projeto">
       <div class="brand">
         <span class="brand__icon" aria-hidden="true">%</span>
-
         <div>
           <strong>Projeto Comissão</strong>
           <span>Controle de vendas</span>
@@ -33,12 +28,7 @@
       </div>
 
       <section class="perfil">
-        <img
-          src="assets/edivandro-lima.jpg"
-          alt="Foto de perfil de Edivandro Lima"
-          class="perfil__foto"
-        >
-
+        <img src="assets/edivandro-lima.jpg" alt="Foto de perfil de Edivandro Lima" class="perfil__foto">
         <h1>Edivandro Lima</h1>
         <p>Controle diário de vendas e comissão</p>
       </section>
@@ -48,9 +38,15 @@
         <strong>2%</strong>
       </div>
 
+      <div class="sidebar__meta-mini" id="sidebar-meta-mini">
+        <span class="sidebar__meta-legenda">Próxima meta</span>
+        <strong id="sidebar-meta-valor">R$ 200.000,00</strong>
+        <small id="sidebar-meta-faltam">Faltam R$ 200.000,00</small>
+      </div>
+
       <p class="sidebar__texto">
         Registre suas vendas, consulte os resultados por mês e acompanhe o total
-        da comissão que você receberá.
+        da comissão que você receberá e o progresso das metas.
       </p>
     </aside>
 
@@ -62,7 +58,10 @@
           <p>Acompanhe seus resultados de forma simples e organizada.</p>
         </div>
 
-        <div class="topo__data" id="data-atual" aria-live="polite"></div>
+        <div class="topo__acoes">
+          <button type="button" id="botao-instalar" class="botao-instalar" hidden>Instalar aplicativo</button>
+          <div class="topo__data" id="data-atual" aria-live="polite"></div>
+        </div>
       </header>
 
       <section class="resumo" aria-label="Resumo das vendas">
@@ -85,25 +84,72 @@
         </article>
       </section>
 
-      <!-- Carrossel de insights -->
+      <section class="metas-grid" aria-label="Metas de vendas">
+        <article class="card card-meta card-meta--progresso" id="card-meta-progresso">
+          <div class="card__cabecalho">
+            <div>
+              <span class="card__legenda">Meta dos vendedores</span>
+              <h3>Progresso da meta</h3>
+            </div>
+          </div>
+
+          <div class="meta-destaque">
+            <div>
+              <span class="meta-destaque__rotulo">Próxima meta</span>
+              <strong id="meta-proxima-valor">R$ 200.000,00</strong>
+              <p id="meta-proxima-bonus">Bônus ao bater: R$ 400,00</p>
+            </div>
+            <div class="meta-destaque__porcentagem" id="meta-percentual">0%</div>
+          </div>
+
+          <div class="barra-meta" aria-hidden="true">
+            <div class="barra-meta__preenchimento" id="barra-meta-preenchimento"></div>
+          </div>
+
+          <div class="meta-infos">
+            <div>
+              <span>Total atual</span>
+              <strong id="meta-total-atual">R$ 0,00</strong>
+            </div>
+            <div>
+              <span>Faltam</span>
+              <strong id="meta-faltante">R$ 200.000,00</strong>
+            </div>
+          </div>
+
+          <p class="meta-mensagem" id="meta-mensagem">
+            Continue registrando suas vendas para alcançar a primeira meta.
+          </p>
+
+          <div class="meta-celebracao" id="meta-celebracao" aria-live="polite"></div>
+        </article>
+
+        <article class="card card-meta">
+          <div class="card__cabecalho">
+            <div>
+              <span class="card__legenda">Tabela de metas</span>
+              <h3>Faixas de bonificação</h3>
+            </div>
+          </div>
+
+          <ul class="lista-metas" id="lista-metas"></ul>
+        </article>
+      </section>
+
       <section class="card insights" aria-labelledby="titulo-insights">
-        <div class="card__cabecalho card__cabecalho--linha">
+        <div class="card__cabecalho card__cabecalho--linha insights__cabecalho">
           <div>
             <span class="card__legenda">Análise rápida</span>
             <h3 id="titulo-insights">Insights do período</h3>
           </div>
 
-          <p class="insights__ajuda">
-            Use as setas ou arraste no celular.
-          </p>
+          <div class="insights__acoes">
+            <p class="insights__ajuda">Use as setas ou arraste no celular.</p>
+            <div class="insights__setas" id="insights-setas"></div>
+          </div>
         </div>
 
-        <div
-          id="carrossel-insights"
-          class="splide"
-          role="group"
-          aria-label="Indicadores e insights das vendas"
-        >
+        <div id="carrossel-insights" class="splide" role="group" aria-label="Indicadores e insights das vendas">
           <div class="splide__track">
             <ul class="splide__list">
               <li class="splide__slide">
@@ -111,9 +157,7 @@
                   <span class="insight-card__icone" aria-hidden="true">★</span>
                   <span class="insight-card__rotulo">Melhor venda</span>
                   <strong id="insight-melhor-venda">R$ 0,00</strong>
-                  <p id="insight-melhor-venda-texto">
-                    Registre uma venda para gerar este indicador.
-                  </p>
+                  <p id="insight-melhor-venda-texto">Registre uma venda para gerar este indicador.</p>
                 </article>
               </li>
 
@@ -140,9 +184,7 @@
                   <span class="insight-card__icone" aria-hidden="true">▣</span>
                   <span class="insight-card__rotulo">Melhor dia</span>
                   <strong id="insight-melhor-dia">Sem dados</strong>
-                  <p id="insight-melhor-dia-texto">
-                    O sistema identificará o dia com maior total vendido.
-                  </p>
+                  <p id="insight-melhor-dia-texto">O sistema identificará o dia com maior total vendido.</p>
                 </article>
               </li>
             </ul>
@@ -162,19 +204,9 @@
           <form id="form-venda" novalidate>
             <div class="campo campo--total">
               <label for="valor-venda">Valor da venda</label>
-
               <div class="campo-moeda">
                 <span aria-hidden="true">R$</span>
-
-                <input
-                  type="number"
-                  id="valor-venda"
-                  min="0.01"
-                  step="0.01"
-                  inputmode="decimal"
-                  placeholder="0,00"
-                  required
-                >
+                <input type="number" id="valor-venda" min="0.01" step="0.01" inputmode="decimal" placeholder="0,00" required>
               </div>
             </div>
 
@@ -184,32 +216,14 @@
             </div>
 
             <div class="campo">
-              <label for="cliente">
-                Cliente <span>(opcional)</span>
-              </label>
-
-              <input
-                type="text"
-                id="cliente"
-                maxlength="80"
-                placeholder="Nome do cliente"
-              >
+              <label for="cliente">Cliente <span>(opcional)</span></label>
+              <input type="text" id="cliente" maxlength="80" placeholder="Nome do cliente">
             </div>
 
-            <button
-              type="submit"
-              class="botao botao--principal campo--total"
-            >
-              Registrar venda
-            </button>
+            <button type="submit" class="botao botao--principal campo--total">Registrar venda</button>
           </form>
 
-          <p
-            id="mensagem"
-            class="mensagem"
-            role="status"
-            aria-live="polite"
-          ></p>
+          <p id="mensagem" class="mensagem" role="status" aria-live="polite"></p>
         </article>
 
         <article class="card">
@@ -223,7 +237,6 @@
           <div class="filtros">
             <div class="campo">
               <label for="filtro-mes">Mês</label>
-
               <select id="filtro-mes">
                 <option value="todos">Todos os meses</option>
                 <option value="0">Janeiro</option>
@@ -243,31 +256,15 @@
 
             <div class="campo">
               <label for="filtro-ano">Ano</label>
-
-              <input
-                type="number"
-                id="filtro-ano"
-                min="2000"
-                max="2100"
-              >
+              <input type="number" id="filtro-ano" min="2000" max="2100">
             </div>
 
-            <button
-              type="button"
-              id="botao-limpar-filtros"
-              class="botao botao--secundario"
-            >
-              Mostrar todas
-            </button>
+            <button type="button" id="botao-limpar-filtros" class="botao botao--secundario">Mostrar todas</button>
           </div>
 
           <div class="previsao">
-            <span>Exemplo de comissão</span>
-
-            <p>
-              Em uma venda de <strong>R$ 10.000,00</strong>, você receberá
-              <strong>R$ 200,00</strong>.
-            </p>
+            <span>Regras de bonificação</span>
+            <p>R$ 200.000,00 = R$ 400,00 • R$ 250.000,00 = R$ 600,00 • R$ 300.000,00 = R$ 800,00 • R$ 350.000,00 = R$ 1.000,00</p>
           </div>
         </article>
       </section>
@@ -278,14 +275,7 @@
             <span class="card__legenda">Lançamentos</span>
             <h3>Histórico de vendas</h3>
           </div>
-
-          <button
-            type="button"
-            id="botao-apagar-tudo"
-            class="botao botao--perigo"
-          >
-            Apagar tudo
-          </button>
+          <button type="button" id="botao-apagar-tudo" class="botao botao--perigo">Apagar tudo</button>
         </div>
 
         <div class="tabela-container">
@@ -299,14 +289,11 @@
                 <th scope="col">Ação</th>
               </tr>
             </thead>
-
             <tbody id="lista-vendas"></tbody>
           </table>
         </div>
 
-        <p id="sem-vendas" class="sem-vendas">
-          Nenhuma venda registrada neste período.
-        </p>
+        <p id="sem-vendas" class="sem-vendas">Nenhuma venda registrada neste período.</p>
       </section>
 
       <footer class="rodape">
