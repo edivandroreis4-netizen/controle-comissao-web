@@ -8,6 +8,40 @@ const METAS = [
   { valor: 350000, bonus: 1000 }
 ];
 
+const bibliotecaZodDisponivel = typeof Zod !== "undefined";
+const bibliotecaDayjsDisponivel = typeof dayjs !== "undefined";
+
+if (bibliotecaDayjsDisponivel) {
+  dayjs.locale("pt-br");
+}
+
+function dataIsoValida(data) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(data)) return false;
+
+  if (bibliotecaDayjsDisponivel) {
+    const dataConvertida = dayjs(data);
+    return dataConvertida.isValid() && dataConvertida.format("YYYY-MM-DD") === data;
+  }
+
+  const dataConvertida = new Date(`${data}T00:00:00`);
+  return !Number.isNaN(dataConvertida.getTime());
+}
+
+const schemaVenda = bibliotecaZodDisponivel
+  ? Zod.object({
+      valor: Zod.number({ invalid_type_error: "Informe um valor numérico." })
+        .finite("Informe um valor válido.")
+        .positive("Digite um valor de venda maior que zero.")
+        .max(999999999.99, "O valor informado ultrapassa o limite permitido."),
+      data: Zod.string()
+        .min(1, "Selecione a data da venda.")
+        .refine(dataIsoValida, "Informe uma data válida."),
+      cliente: Zod.string()
+        .trim()
+        .max(80, "O nome do cliente pode ter no máximo 80 caracteres.")
+    })
+  : null;
+
 const formulario = document.querySelector("#form-venda");
 const campoValorVenda = document.querySelector("#valor-venda");
 const campoDataVenda = document.querySelector("#data-venda");
@@ -41,9 +75,14 @@ const cardMetaProgresso = document.querySelector("#card-meta-progresso");
 const metaCelebracao = document.querySelector("#meta-celebracao");
 const sidebarMetaValor = document.querySelector("#sidebar-meta-valor");
 const sidebarMetaFaltam = document.querySelector("#sidebar-meta-faltam");
+const graficoVendasCanvas = document.querySelector("#grafico-vendas");
+const graficoStatus = document.querySelector("#grafico-status");
+const botaoInstalar = document.querySelector("#botao-instalar");
 
 let vendas = carregarVendas();
 let carrosselInsights;
+let graficoVendas;
+let eventoInstalacaoPwa;
 
 function carregarVendas() {
   const vendasSalvas = localStorage.getItem(CHAVE_LOCAL_STORAGE);
@@ -66,6 +105,10 @@ function formatarMoeda(valor) {
 }
 
 function formatarData(data) {
+  if (bibliotecaDayjsDisponivel && dataIsoValida(data)) {
+    return dayjs(data).format("DD/MM/YYYY");
+  }
+
   const [ano, mes, dia] = data.split("-");
   return `${dia}/${mes}/${ano}`;
 }
@@ -75,6 +118,17 @@ function calcularComissao(valorVenda) {
 }
 
 function definirDatasIniciais() {
+  if (bibliotecaDayjsDisponivel) {
+    const hoje = dayjs();
+    campoDataVenda.value = hoje.format("YYYY-MM-DD");
+    filtroAno.value = hoje.format("YYYY");
+    filtroMes.value = String(hoje.month());
+
+    const dataPorExtenso = hoje.format("dddd, DD [de] MMMM [de] YYYY");
+    dataAtualElemento.textContent = dataPorExtenso.charAt(0).toUpperCase() + dataPorExtenso.slice(1);
+    return;
+  }
+
   const hoje = new Date();
   const ano = hoje.getFullYear();
   const mes = String(hoje.getMonth() + 1).padStart(2, "0");
@@ -118,6 +172,117 @@ function iniciarCarrossel() {
   if (setas) {
     document.querySelector("#insights-setas").appendChild(setas);
   }
+}
+
+function exibirToast(titulo, icone = "success") {
+  if (typeof Swal === "undefined") {
+    mostrarMensagem(titulo, icone === "error" ? "erro" : "sucesso");
+    return;
+  }
+
+  Swal.fire({
+    toast: true,
+    position: "top-end",
+    icon: icone,
+    title: titulo,
+    showConfirmButton: false,
+    timer: 2800,
+    timerProgressBar: true
+  });
+}
+
+function exibirAlertaErro(titulo, texto) {
+  if (typeof Swal === "undefined") {
+    mostrarMensagem(texto, "erro");
+    return;
+  }
+
+  Swal.fire({
+    icon: "error",
+    title: titulo,
+    text: texto,
+    confirmButtonText: "Entendi"
+  });
+}
+
+function agruparVendasPorDia(vendasExibidas) {
+  const totais = vendasExibidas.reduce((resultado, venda) => {
+    resultado[venda.data] = (resultado[venda.data] || 0) + venda.valor;
+    return resultado;
+  }, {});
+
+  return Object.entries(totais)
+    .sort(([dataA], [dataB]) => dataA.localeCompare(dataB))
+    .map(([data, total]) => ({ data, total }));
+}
+
+function atualizarGrafico(vendasExibidas) {
+  if (!graficoVendasCanvas || typeof Chart === "undefined") {
+    if (graficoStatus) graficoStatus.textContent = "Gráfico indisponível no momento.";
+    return;
+  }
+
+  const vendasPorDia = agruparVendasPorDia(vendasExibidas);
+  const rotulos = vendasPorDia.map((item) => formatarData(item.data));
+  const valores = vendasPorDia.map((item) => item.total);
+
+  if (graficoVendas) {
+    graficoVendas.destroy();
+  }
+
+  graficoStatus.textContent = vendasPorDia.length
+    ? `${vendasPorDia.length} dia(s) com vendas`
+    : "Nenhuma venda no período";
+
+  graficoVendas = new Chart(graficoVendasCanvas, {
+    type: "bar",
+    data: {
+      labels: rotulos,
+      datasets: [{
+        label: "Total vendido",
+        data: valores,
+        backgroundColor: "rgba(23, 49, 109, 0.78)",
+        borderColor: "#17316d",
+        borderWidth: 1,
+        borderRadius: 8,
+        maxBarThickness: 56
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { intersect: false, mode: "index" },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label(contexto) {
+              return `Total: ${formatarMoeda(contexto.parsed.y)}`;
+            }
+          }
+        }
+      },
+      scales: {
+        x: {
+          grid: { display: false },
+          ticks: { maxRotation: 0, autoSkip: true, maxTicksLimit: 12 }
+        },
+        y: {
+          beginAtZero: true,
+          ticks: {
+            callback(valor) {
+              return new Intl.NumberFormat("pt-BR", {
+                style: "currency",
+                currency: "BRL",
+                notation: "compact",
+                maximumFractionDigits: 1
+              }).format(valor);
+            }
+          }
+        }
+      }
+    }
+  });
 }
 
 function mostrarMensagem(texto, tipo) {
@@ -206,6 +371,16 @@ function renderizarListaMetas(totalVendido) {
 
 function celebrarMeta(meta) {
   if (!meta) return;
+
+  if (typeof Swal !== "undefined") {
+    Swal.fire({
+      icon: "success",
+      title: "Meta atingida!",
+      html: `Você alcançou <strong>${formatarMoeda(meta.valor)}</strong> em vendas e conquistou um bônus estimado de <strong>${formatarMoeda(meta.bonus)}</strong>.`,
+      confirmButtonText: "Continuar"
+    });
+  }
+
   metaCelebracao.textContent = `Meta batida! Bônus estimado: ${formatarMoeda(meta.bonus)}.`;
   metaCelebracao.classList.add("meta-celebracao--ativo");
   cardMetaProgresso.classList.add("card-meta--celebrando");
@@ -264,6 +439,7 @@ function atualizarResumo(vendasExibidas, dispararCelebracao = false) {
   quantidadeVendasElemento.textContent = vendasExibidas.length;
   atualizarInsights(vendasExibidas, totalVendido, totalComissao);
   atualizarMetas(totalVendido, dispararCelebracao);
+  atualizarGrafico(vendasExibidas);
 }
 
 function criarCelula(texto) {
@@ -304,72 +480,171 @@ function renderizarVendas(opcoes = {}) {
 
 function adicionarVenda(evento) {
   evento.preventDefault();
-  const valorVenda = Number(campoValorVenda.value);
-  const dataVenda = campoDataVenda.value;
-  const cliente = campoCliente.value.trim();
 
-  if (!Number.isFinite(valorVenda) || valorVenda <= 0) {
-    mostrarMensagem("Digite um valor de venda válido.", "erro");
-    campoValorVenda.focus();
-    return;
-  }
-  if (!dataVenda) {
-    mostrarMensagem("Selecione a data da venda.", "erro");
-    campoDataVenda.focus();
-    return;
+  const dadosFormulario = {
+    valor: Number(campoValorVenda.value),
+    data: campoDataVenda.value,
+    cliente: campoCliente.value.trim()
+  };
+
+  if (schemaVenda) {
+    const validacao = schemaVenda.safeParse(dadosFormulario);
+
+    if (!validacao.success) {
+      const primeiroErro = validacao.error.issues[0];
+      const campoComErro = primeiroErro.path[0];
+
+      exibirAlertaErro("Dados inválidos", primeiroErro.message);
+
+      if (campoComErro === "valor") campoValorVenda.focus();
+      if (campoComErro === "data") campoDataVenda.focus();
+      if (campoComErro === "cliente") campoCliente.focus();
+      return;
+    }
+
+    Object.assign(dadosFormulario, validacao.data);
+  } else {
+    if (!Number.isFinite(dadosFormulario.valor) || dadosFormulario.valor <= 0) {
+      exibirAlertaErro("Valor inválido", "Digite um valor de venda maior que zero.");
+      campoValorVenda.focus();
+      return;
+    }
+
+    if (!dataIsoValida(dadosFormulario.data)) {
+      exibirAlertaErro("Data inválida", "Selecione uma data válida para a venda.");
+      campoDataVenda.focus();
+      return;
+    }
   }
 
   const novaVenda = {
     id: crypto.randomUUID(),
-    valor: valorVenda,
-    comissao: calcularComissao(valorVenda),
-    data: dataVenda,
-    cliente
+    valor: dadosFormulario.valor,
+    comissao: calcularComissao(dadosFormulario.valor),
+    data: dadosFormulario.data,
+    cliente: dadosFormulario.cliente
   };
 
   vendas.push(novaVenda);
   salvarVendas();
 
-  const [ano, mes] = dataVenda.split("-");
-  filtroMes.value = String(Number(mes) - 1);
-  filtroAno.value = ano;
+  const dataVenda = bibliotecaDayjsDisponivel
+    ? dayjs(novaVenda.data)
+    : null;
+
+  if (dataVenda) {
+    filtroMes.value = String(dataVenda.month());
+    filtroAno.value = dataVenda.format("YYYY");
+  } else {
+    const [ano, mes] = novaVenda.data.split("-");
+    filtroMes.value = String(Number(mes) - 1);
+    filtroAno.value = ano;
+  }
 
   renderizarVendas({ dispararCelebracao: true });
   formulario.reset();
-  campoDataVenda.value = dataVenda;
+  campoDataVenda.value = novaVenda.data;
   campoValorVenda.focus();
-  mostrarMensagem(`Venda registrada. Sua comissão será de ${formatarMoeda(novaVenda.comissao)}.`, "sucesso");
+  exibirToast(`Venda registrada • Comissão: ${formatarMoeda(novaVenda.comissao)}`);
 }
 
-function excluirVenda(idVenda) {
+async function excluirVenda(idVenda) {
   const vendaEncontrada = vendas.find((venda) => venda.id === idVenda);
   if (!vendaEncontrada) return;
-  const desejaExcluir = window.confirm(`Deseja excluir a venda de ${formatarMoeda(vendaEncontrada.valor)}?`);
+
+  let desejaExcluir = true;
+
+  if (typeof Swal !== "undefined") {
+    const resultado = await Swal.fire({
+      icon: "warning",
+      title: "Excluir esta venda?",
+      text: `${formatarMoeda(vendaEncontrada.valor)} será removido do histórico.`,
+      showCancelButton: true,
+      confirmButtonText: "Sim, excluir",
+      cancelButtonText: "Cancelar",
+      reverseButtons: true,
+      focusCancel: true
+    });
+    desejaExcluir = resultado.isConfirmed;
+  } else {
+    desejaExcluir = window.confirm(`Deseja excluir a venda de ${formatarMoeda(vendaEncontrada.valor)}?`);
+  }
+
   if (!desejaExcluir) return;
+
   vendas = vendas.filter((venda) => venda.id !== idVenda);
   salvarVendas();
   renderizarVendas();
-  mostrarMensagem("Venda excluída com sucesso.", "sucesso");
+  exibirToast("Venda excluída com sucesso.");
 }
 
-function apagarTodasAsVendas() {
+async function apagarTodasAsVendas() {
   if (vendas.length === 0) {
-    mostrarMensagem("Não existem vendas para apagar.", "erro");
+    exibirAlertaErro("Histórico vazio", "Não existem vendas para apagar.");
     return;
   }
-  const desejaApagarTudo = window.confirm("Deseja apagar todas as vendas? Essa ação não poderá ser desfeita.");
+
+  let desejaApagarTudo = true;
+
+  if (typeof Swal !== "undefined") {
+    const resultado = await Swal.fire({
+      icon: "warning",
+      title: "Apagar todas as vendas?",
+      text: "Essa ação não poderá ser desfeita.",
+      showCancelButton: true,
+      confirmButtonText: "Sim, apagar tudo",
+      cancelButtonText: "Cancelar",
+      reverseButtons: true,
+      focusCancel: true
+    });
+    desejaApagarTudo = resultado.isConfirmed;
+  } else {
+    desejaApagarTudo = window.confirm("Deseja apagar todas as vendas? Essa ação não poderá ser desfeita.");
+  }
+
   if (!desejaApagarTudo) return;
+
   vendas = [];
   salvarVendas();
   localStorage.removeItem(CHAVE_META_ATINGIDA);
   renderizarVendas();
-  mostrarMensagem("Todas as vendas foram apagadas.", "sucesso");
+  exibirToast("Todas as vendas foram apagadas.");
 }
 
 function limparFiltros() {
   filtroMes.value = "todos";
   filtroAno.value = "";
   renderizarVendas();
+}
+
+window.addEventListener("beforeinstallprompt", (evento) => {
+  evento.preventDefault();
+  eventoInstalacaoPwa = evento;
+  if (botaoInstalar) botaoInstalar.hidden = false;
+});
+
+if (botaoInstalar) {
+  botaoInstalar.addEventListener("click", async () => {
+    if (!eventoInstalacaoPwa) return;
+    eventoInstalacaoPwa.prompt();
+    await eventoInstalacaoPwa.userChoice;
+    eventoInstalacaoPwa = null;
+    botaoInstalar.hidden = true;
+  });
+}
+
+window.addEventListener("appinstalled", () => {
+  eventoInstalacaoPwa = null;
+  if (botaoInstalar) botaoInstalar.hidden = true;
+  exibirToast("Aplicativo instalado com sucesso.");
+});
+
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("./service-worker.js").catch((erro) => {
+      console.error("Não foi possível registrar o Service Worker:", erro);
+    });
+  });
 }
 
 formulario.addEventListener("submit", adicionarVenda);
@@ -381,37 +656,3 @@ botaoApagarTudo.addEventListener("click", apagarTodasAsVendas);
 definirDatasIniciais();
 iniciarCarrossel();
 renderizarVendas();
-
-
-// Recursos de instalação e funcionamento offline (PWA)
-let eventoInstalacaoPendente = null;
-const botaoInstalar = document.querySelector("#botao-instalar");
-if ("serviceWorker" in navigator) {
-  window.addEventListener("load", async () => {
-    try {
-      await navigator.serviceWorker.register("./service-worker.js");
-      console.log("Service Worker registrado com sucesso.");
-    } catch (erro) {
-      console.error("Não foi possível registrar o Service Worker:", erro);
-    }
-  });
-}
-window.addEventListener("beforeinstallprompt", (evento) => {
-  evento.preventDefault();
-  eventoInstalacaoPendente = evento;
-  botaoInstalar.hidden = false;
-});
-botaoInstalar?.addEventListener("click", async () => {
-  if (!eventoInstalacaoPendente) return;
-  eventoInstalacaoPendente.prompt();
-  const escolha = await eventoInstalacaoPendente.userChoice;
-  if (escolha.outcome === "accepted") {
-    mostrarMensagem("Aplicativo instalado com sucesso.", "sucesso");
-  }
-  eventoInstalacaoPendente = null;
-  botaoInstalar.hidden = true;
-});
-window.addEventListener("appinstalled", () => {
-  eventoInstalacaoPendente = null;
-  botaoInstalar.hidden = true;
-});

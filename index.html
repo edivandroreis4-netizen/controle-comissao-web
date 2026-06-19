@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="description" content="Sistema para registrar vendas, acompanhar comissão de 2% e metas por período.">
+  <meta name="theme-color" content="#17316d">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -59,7 +60,9 @@
         </div>
 
         <div class="topo__acoes">
-          <button type="button" id="botao-instalar" class="botao-instalar" hidden>Instalar aplicativo</button>
+          <button type="button" id="botao-instalar" class="botao-instalar" hidden>
+            Instalar aplicativo
+          </button>
           <div class="topo__data" id="data-atual" aria-live="polite"></div>
         </div>
       </header>
@@ -192,6 +195,22 @@
         </div>
       </section>
 
+      <section class="card secao-grafico" aria-labelledby="titulo-grafico-vendas">
+        <div class="card__cabecalho card__cabecalho--linha">
+          <div>
+            <span class="card__legenda">Análise visual</span>
+            <h3 id="titulo-grafico-vendas">Desempenho de vendas</h3>
+            <p class="grafico__descricao">Total vendido por dia no período selecionado.</p>
+          </div>
+
+          <span class="grafico__status" id="grafico-status" aria-live="polite"></span>
+        </div>
+
+        <div class="grafico-container">
+          <canvas id="grafico-vendas" aria-label="Gráfico das vendas por dia" role="img"></canvas>
+        </div>
+      </section>
+
       <section class="grid-principal">
         <article class="card">
           <div class="card__cabecalho">
@@ -303,6 +322,11 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@splidejs/splide@4.1.4/dist/js/splide.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.15.10/dist/sweetalert2.all.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/dayjs@1.11.13/dayjs.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/dayjs@1.11.13/locale/pt-br.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/zod@3.24.2/lib/index.umd.js"></script>
   <script src="script.js"></script>
 </body>
 </html>

@@ -16,7 +16,17 @@
     {"src": "icons/maskable-icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable"}
   ],
   "shortcuts": [
-    {"name": "Registrar venda", "short_name": "Nova venda", "url": "./#form-venda", "icons": [{"src": "icons/icon-192.png", "sizes": "192x192"}]},
-    {"name": "Ver metas", "short_name": "Metas", "url": "./#card-meta-progresso", "icons": [{"src": "icons/icon-192.png", "sizes": "192x192"}]}
+    {
+      "name": "Registrar venda",
+      "short_name": "Nova venda",
+      "url": "./#form-venda",
+      "icons": [{"src": "icons/icon-192.png", "sizes": "192x192"}]
+    },
+    {
+      "name": "Ver metas",
+      "short_name": "Metas",
+      "url": "./#card-meta-progresso",
+      "icons": [{"src": "icons/icon-192.png", "sizes": "192x192"}]
+    }
   ]
 }
