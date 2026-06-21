@@ -45,3 +45,10 @@ git push
 ## Autor
 
 Desenvolvido por Edivandro Lima.
+
+
+## Novos recursos
+
+- Exportação das vendas filtradas em CSV compatível com Excel e Google Planilhas.
+- Tema claro e escuro com preferência salva no localStorage.
+- O relatório CSV inclui data, cliente, valor da venda, comissão e percentual.

@@ -1,6 +1,7 @@
 const TAXA_COMISSAO = 0.02;
 const CHAVE_LOCAL_STORAGE = "vendasComissao";
 const CHAVE_META_ATINGIDA = "ultimaMetaAtingida";
+const CHAVE_TEMA = "temaControleComissao";
 const METAS = [
   { valor: 200000, bonus: 400 },
   { valor: 250000, bonus: 600 },
@@ -78,6 +79,11 @@ const sidebarMetaFaltam = document.querySelector("#sidebar-meta-faltam");
 const graficoVendasCanvas = document.querySelector("#grafico-vendas");
 const graficoStatus = document.querySelector("#grafico-status");
 const botaoInstalar = document.querySelector("#botao-instalar");
+const botaoExportarCsv = document.querySelector("#botao-exportar-csv");
+const botaoTema = document.querySelector("#botao-tema");
+const iconeTema = document.querySelector("#icone-tema");
+const textoTema = document.querySelector("#texto-tema");
+const metaThemeColor = document.querySelector('meta[name="theme-color"]');
 
 let vendas = carregarVendas();
 let carrosselInsights;
@@ -100,8 +106,17 @@ function salvarVendas() {
   localStorage.setItem(CHAVE_LOCAL_STORAGE, JSON.stringify(vendas));
 }
 
-function formatarMoeda(valor) {
-  return valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+function formatarMoeda(valor = 0) {
+  const numero = Number(valor);
+
+  if (!Number.isFinite(numero)) {
+    return "R$ 0,00";
+  }
+
+  return numero.toLocaleString("pt-BR", {
+    style: "currency",
+    currency: "BRL"
+  });
 }
 
 function formatarData(data) {
@@ -611,6 +626,78 @@ async function apagarTodasAsVendas() {
   exibirToast("Todas as vendas foram apagadas.");
 }
 
+
+function escaparCsv(valor) {
+  const texto = String(valor ?? "");
+  return `"${texto.replace(/"/g, '""')}"`;
+}
+
+function exportarVendasCsv() {
+  const vendasFiltradas = obterVendasFiltradas()
+    .slice()
+    .sort((a, b) => new Date(a.data) - new Date(b.data));
+
+  if (vendasFiltradas.length === 0) {
+    exibirAlertaErro("Nenhuma venda para exportar", "Ajuste os filtros ou registre uma venda antes de gerar o relatório.");
+    return;
+  }
+
+  const cabecalho = ["Data", "Cliente", "Valor da venda", "Comissão", "Percentual da comissão"];
+  const linhas = vendasFiltradas.map((venda) => [
+    formatarData(venda.data),
+    venda.cliente || "Não informado",
+    venda.valor.toFixed(2).replace(".", ","),
+    venda.comissao.toFixed(2).replace(".", ","),
+    `${(TAXA_COMISSAO * 100).toFixed(2).replace(".", ",")}%`
+  ]);
+
+  const conteudo = [cabecalho, ...linhas]
+    .map((linha) => linha.map(escaparCsv).join(";"))
+    .join("\r\n");
+
+  const blob = new Blob(["\uFEFF", conteudo], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  const dataArquivo = bibliotecaDayjsDisponivel
+    ? dayjs().format("YYYY-MM-DD")
+    : new Date().toISOString().slice(0, 10);
+
+  link.href = url;
+  link.download = `relatorio-vendas-${dataArquivo}.csv`;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+  exibirToast(`${vendasFiltradas.length} venda(s) exportada(s) para CSV.`);
+}
+
+function aplicarTema(tema) {
+  const temaEscuro = tema === "escuro";
+  document.documentElement.dataset.theme = temaEscuro ? "escuro" : "claro";
+  document.documentElement.style.colorScheme = temaEscuro ? "dark" : "light";
+
+  if (botaoTema) {
+    botaoTema.setAttribute("aria-pressed", String(temaEscuro));
+    botaoTema.setAttribute("aria-label", temaEscuro ? "Ativar tema claro" : "Ativar tema escuro");
+  }
+  if (iconeTema) iconeTema.textContent = temaEscuro ? "☀" : "☾";
+  if (textoTema) textoTema.textContent = temaEscuro ? "Tema claro" : "Tema escuro";
+  if (metaThemeColor) metaThemeColor.setAttribute("content", temaEscuro ? "#08152f" : "#17316d");
+}
+
+function definirTemaInicial() {
+  const temaSalvo = localStorage.getItem(CHAVE_TEMA);
+  const prefereEscuro = window.matchMedia?.("(prefers-color-scheme: dark)").matches;
+  aplicarTema(temaSalvo || (prefereEscuro ? "escuro" : "claro"));
+}
+
+function alternarTema() {
+  const temaAtual = document.documentElement.dataset.theme === "escuro" ? "escuro" : "claro";
+  const novoTema = temaAtual === "escuro" ? "claro" : "escuro";
+  localStorage.setItem(CHAVE_TEMA, novoTema);
+  aplicarTema(novoTema);
+}
+
 function limparFiltros() {
   filtroMes.value = "todos";
   filtroAno.value = "";
@@ -652,7 +739,10 @@ filtroMes.addEventListener("change", () => renderizarVendas());
 filtroAno.addEventListener("input", () => renderizarVendas());
 botaoLimparFiltros.addEventListener("click", limparFiltros);
 botaoApagarTudo.addEventListener("click", apagarTodasAsVendas);
+if (botaoExportarCsv) botaoExportarCsv.addEventListener("click", exportarVendasCsv);
+if (botaoTema) botaoTema.addEventListener("click", alternarTema);
 
+definirTemaInicial();
 definirDatasIniciais();
 iniciarCarrossel();
 renderizarVendas();

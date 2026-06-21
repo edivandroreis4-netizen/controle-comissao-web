@@ -1,4 +1,4 @@
-const CACHE_VERSION = "controle-comissao-pwa-v3";
+const CACHE_VERSION = "comissao-v7-exportacao-tema";
 
 const APP_SHELL = [
   "./",
