@@ -1,4 +1,4 @@
-const CACHE_VERSION = "comissao-v7-exportacao-tema";
+const CACHE_VERSION = "comissao-v8-orcamentos-edicao";
 
 const APP_SHELL = [
   "./",

@@ -2,6 +2,8 @@ const TAXA_COMISSAO = 0.02;
 const CHAVE_LOCAL_STORAGE = "vendasComissao";
 const CHAVE_META_ATINGIDA = "ultimaMetaAtingida";
 const CHAVE_TEMA = "temaControleComissao";
+const CHAVE_ORCAMENTOS = "orcamentosComissao";
+const INTERVALO_CONTATO_DIAS = 8;
 const METAS = [
   { valor: 200000, bonus: 400 },
   { valor: 250000, bonus: 600 },
@@ -84,8 +86,34 @@ const botaoTema = document.querySelector("#botao-tema");
 const iconeTema = document.querySelector("#icone-tema");
 const textoTema = document.querySelector("#texto-tema");
 const metaThemeColor = document.querySelector('meta[name="theme-color"]');
+const botaoSalvarVenda = document.querySelector("#botao-salvar-venda");
+const botaoCancelarEdicao = document.querySelector("#botao-cancelar-edicao");
+const abaVendas = document.querySelector("#aba-vendas");
+const abaOrcamentos = document.querySelector("#aba-orcamentos");
+const painelVendas = document.querySelector("#painel-vendas");
+const painelOrcamentos = document.querySelector("#painel-orcamentos");
+const contadorOrcamentos = document.querySelector("#contador-orcamentos");
+const resumoContatos = document.querySelector("#resumo-contatos");
+const botaoNovoOrcamento = document.querySelector("#botao-novo-orcamento");
+const dialogOrcamento = document.querySelector("#dialog-orcamento");
+const formOrcamento = document.querySelector("#form-orcamento");
+const tituloDialogOrcamento = document.querySelector("#titulo-dialog-orcamento");
+const fecharDialogOrcamento = document.querySelector("#fechar-dialog-orcamento");
+const cancelarOrcamento = document.querySelector("#cancelar-orcamento");
+const orcamentoCliente = document.querySelector("#orcamento-cliente");
+const orcamentoTelefone = document.querySelector("#orcamento-telefone");
+const orcamentoData = document.querySelector("#orcamento-data");
+const orcamentoValor = document.querySelector("#orcamento-valor");
+const orcamentoObservacoes = document.querySelector("#orcamento-observacoes");
+const listaOrcamentos = document.querySelector("#lista-orcamentos");
+const semOrcamentos = document.querySelector("#sem-orcamentos");
+const buscaOrcamento = document.querySelector("#busca-orcamento");
+const filtroStatusOrcamento = document.querySelector("#filtro-status-orcamento");
 
 let vendas = carregarVendas();
+let orcamentos = carregarOrcamentos();
+let vendaEmEdicaoId = null;
+let orcamentoEmEdicaoId = null;
 let carrosselInsights;
 let graficoVendas;
 let eventoInstalacaoPwa;
@@ -95,9 +123,38 @@ function carregarVendas() {
   if (!vendasSalvas) return [];
   try {
     const dados = JSON.parse(vendasSalvas);
-    return Array.isArray(dados) ? dados : [];
+    if (!Array.isArray(dados)) return [];
+    const normalizadas = dados.map((venda) => {
+      const valor = Number(venda.valor) || 0;
+      return {
+        ...venda,
+        id: venda.id || crypto.randomUUID(),
+        valor,
+        comissao: Number.isFinite(Number(venda.comissao)) ? Number(venda.comissao) : calcularComissao(valor),
+        cliente: String(venda.cliente || ""),
+        data: venda.data || ""
+      };
+    });
+    localStorage.setItem(CHAVE_LOCAL_STORAGE, JSON.stringify(normalizadas));
+    return normalizadas;
   } catch (erro) {
     console.error("Erro ao carregar as vendas:", erro);
+    return [];
+  }
+}
+
+function carregarOrcamentos() {
+  try {
+    const dados = JSON.parse(localStorage.getItem(CHAVE_ORCAMENTOS) || "[]");
+    if (!Array.isArray(dados)) return [];
+    return dados.map((orcamento) => ({
+      ...orcamento,
+      id: orcamento.id || crypto.randomUUID(),
+      status: orcamento.status || "pendente",
+      valor: Number(orcamento.valor) || 0
+    }));
+  } catch (erro) {
+    console.error("Erro ao carregar os orçamentos:", erro);
     return [];
   }
 }
@@ -106,17 +163,14 @@ function salvarVendas() {
   localStorage.setItem(CHAVE_LOCAL_STORAGE, JSON.stringify(vendas));
 }
 
+function salvarOrcamentos() {
+  localStorage.setItem(CHAVE_ORCAMENTOS, JSON.stringify(orcamentos));
+}
+
 function formatarMoeda(valor = 0) {
   const numero = Number(valor);
-
-  if (!Number.isFinite(numero)) {
-    return "R$ 0,00";
-  }
-
-  return numero.toLocaleString("pt-BR", {
-    style: "currency",
-    currency: "BRL"
-  });
+  if (!Number.isFinite(numero)) return "R$ 0,00";
+  return numero.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }
 
 function formatarData(data) {
@@ -470,15 +524,46 @@ function criarLinhaVenda(venda) {
   const colunaValor = criarCelula(formatarMoeda(venda.valor));
   const colunaComissao = criarCelula(formatarMoeda(venda.comissao));
   const colunaAcao = document.createElement("td");
+  colunaAcao.className = "acoes-tabela";
+
+  const botaoEditar = document.createElement("button");
+  botaoEditar.type = "button";
+  botaoEditar.className = "botao-acao botao-acao--editar";
+  botaoEditar.textContent = "Editar";
+  botaoEditar.setAttribute("aria-label", `Editar venda de ${formatarMoeda(venda.valor)}`);
+  botaoEditar.addEventListener("click", () => iniciarEdicaoVenda(venda.id));
+
   const botaoExcluir = document.createElement("button");
   botaoExcluir.type = "button";
-  botaoExcluir.className = "botao-excluir";
+  botaoExcluir.className = "botao-acao botao-acao--excluir";
   botaoExcluir.textContent = "Excluir";
   botaoExcluir.setAttribute("aria-label", `Excluir venda de ${formatarMoeda(venda.valor)}`);
   botaoExcluir.addEventListener("click", () => excluirVenda(venda.id));
-  colunaAcao.appendChild(botaoExcluir);
+
+  colunaAcao.append(botaoEditar, botaoExcluir);
   linha.append(colunaData, colunaCliente, colunaValor, colunaComissao, colunaAcao);
   return linha;
+}
+
+function iniciarEdicaoVenda(idVenda) {
+  const venda = vendas.find((item) => item.id === idVenda);
+  if (!venda) return;
+  vendaEmEdicaoId = idVenda;
+  campoValorVenda.value = venda.valor;
+  campoDataVenda.value = venda.data;
+  campoCliente.value = venda.cliente || "";
+  botaoSalvarVenda.textContent = "Salvar alteração";
+  botaoCancelarEdicao.hidden = false;
+  formulario.scrollIntoView({ behavior: "smooth", block: "center" });
+  campoValorVenda.focus();
+}
+
+function cancelarEdicaoVenda() {
+  vendaEmEdicaoId = null;
+  formulario.reset();
+  campoDataVenda.value = bibliotecaDayjsDisponivel ? dayjs().format("YYYY-MM-DD") : new Date().toISOString().slice(0, 10);
+  botaoSalvarVenda.textContent = "Registrar venda";
+  botaoCancelarEdicao.hidden = true;
 }
 
 function renderizarVendas(opcoes = {}) {
@@ -533,14 +618,19 @@ function adicionarVenda(evento) {
   }
 
   const novaVenda = {
-    id: crypto.randomUUID(),
+    id: vendaEmEdicaoId || crypto.randomUUID(),
     valor: dadosFormulario.valor,
     comissao: calcularComissao(dadosFormulario.valor),
     data: dadosFormulario.data,
     cliente: dadosFormulario.cliente
   };
 
-  vendas.push(novaVenda);
+  const editando = Boolean(vendaEmEdicaoId);
+  if (editando) {
+    vendas = vendas.map((venda) => venda.id === vendaEmEdicaoId ? novaVenda : venda);
+  } else {
+    vendas.push(novaVenda);
+  }
   salvarVendas();
 
   const dataVenda = bibliotecaDayjsDisponivel
@@ -557,10 +647,10 @@ function adicionarVenda(evento) {
   }
 
   renderizarVendas({ dispararCelebracao: true });
-  formulario.reset();
+  cancelarEdicaoVenda();
   campoDataVenda.value = novaVenda.data;
   campoValorVenda.focus();
-  exibirToast(`Venda registrada • Comissão: ${formatarMoeda(novaVenda.comissao)}`);
+  exibirToast(editando ? "Venda atualizada com sucesso." : `Venda registrada • Comissão: ${formatarMoeda(novaVenda.comissao)}`);
 }
 
 async function excluirVenda(idVenda) {
@@ -624,6 +714,213 @@ async function apagarTodasAsVendas() {
   localStorage.removeItem(CHAVE_META_ATINGIDA);
   renderizarVendas();
   exibirToast("Todas as vendas foram apagadas.");
+}
+
+
+function trocarAba(aba) {
+  const mostrarVendas = aba === "vendas";
+  painelVendas.hidden = !mostrarVendas;
+  painelOrcamentos.hidden = mostrarVendas;
+  abaVendas.classList.toggle("aba--ativa", mostrarVendas);
+  abaOrcamentos.classList.toggle("aba--ativa", !mostrarVendas);
+  abaVendas.setAttribute("aria-selected", String(mostrarVendas));
+  abaOrcamentos.setAttribute("aria-selected", String(!mostrarVendas));
+  if (!mostrarVendas) renderizarOrcamentos();
+}
+
+function calcularProximoContato(dataBase) {
+  if (bibliotecaDayjsDisponivel) return dayjs(dataBase).add(INTERVALO_CONTATO_DIAS, "day").format("YYYY-MM-DD");
+  const data = new Date(`${dataBase}T00:00:00`);
+  data.setDate(data.getDate() + INTERVALO_CONTATO_DIAS);
+  return data.toISOString().slice(0, 10);
+}
+
+function situacaoOrcamento(orcamento) {
+  if (orcamento.status === "concluido") return "concluido";
+  const hoje = bibliotecaDayjsDisponivel ? dayjs().startOf("day") : new Date(new Date().toDateString());
+  const proximo = bibliotecaDayjsDisponivel ? dayjs(orcamento.proximoContato).startOf("day") : new Date(`${orcamento.proximoContato}T00:00:00`);
+  const diferenca = bibliotecaDayjsDisponivel ? proximo.diff(hoje, "day") : Math.round((proximo - hoje) / 86400000);
+  if (diferenca < 0) return "atrasado";
+  if (diferenca === 0) return "hoje";
+  return "pendente";
+}
+
+function abrirDialogOrcamento(id = null) {
+  orcamentoEmEdicaoId = id;
+  formOrcamento.reset();
+  const hoje = bibliotecaDayjsDisponivel ? dayjs().format("YYYY-MM-DD") : new Date().toISOString().slice(0, 10);
+  orcamentoData.value = hoje;
+  tituloDialogOrcamento.textContent = id ? "Editar orçamento" : "Novo orçamento";
+  if (id) {
+    const orcamento = orcamentos.find((item) => item.id === id);
+    if (!orcamento) return;
+    orcamentoCliente.value = orcamento.cliente;
+    orcamentoTelefone.value = orcamento.telefone;
+    orcamentoData.value = orcamento.dataOrcamento;
+    orcamentoValor.value = orcamento.valor;
+    orcamentoObservacoes.value = orcamento.observacoes || "";
+  }
+  if (typeof dialogOrcamento.showModal === "function") dialogOrcamento.showModal();
+  else dialogOrcamento.setAttribute("open", "");
+  orcamentoCliente.focus();
+}
+
+function fecharDialog() {
+  if (typeof dialogOrcamento.close === "function") dialogOrcamento.close();
+  else dialogOrcamento.removeAttribute("open");
+  orcamentoEmEdicaoId = null;
+}
+
+function salvarOrcamentoFormulario(evento) {
+  evento.preventDefault();
+  const cliente = orcamentoCliente.value.trim();
+  const telefone = orcamentoTelefone.value.trim();
+  const dataOrcamento = orcamentoData.value;
+  const valor = Number(orcamentoValor.value);
+  if (!cliente || !telefone || !dataIsoValida(dataOrcamento) || !Number.isFinite(valor) || valor <= 0) {
+    exibirAlertaErro("Dados inválidos", "Preencha nome, telefone, data e um valor maior que zero.");
+    return;
+  }
+  const editandoOrcamento = Boolean(orcamentoEmEdicaoId);
+  const anterior = orcamentos.find((item) => item.id === orcamentoEmEdicaoId);
+  const registro = {
+    id: orcamentoEmEdicaoId || crypto.randomUUID(),
+    cliente,
+    telefone,
+    dataOrcamento,
+    valor,
+    observacoes: orcamentoObservacoes.value.trim(),
+    status: anterior?.status || "pendente",
+    ultimoContato: anterior?.ultimoContato || null,
+    proximoContato: anterior?.proximoContato || calcularProximoContato(dataOrcamento)
+  };
+  if (orcamentoEmEdicaoId) orcamentos = orcamentos.map((item) => item.id === registro.id ? registro : item);
+  else orcamentos.push(registro);
+  salvarOrcamentos();
+  fecharDialog();
+  renderizarOrcamentos();
+  exibirToast(editandoOrcamento ? "Orçamento atualizado." : "Orçamento cadastrado.");
+}
+
+function criarBotaoOrcamento(texto, classe, acao, rotulo) {
+  const botao = document.createElement("button");
+  botao.type = "button";
+  botao.className = `botao-acao ${classe}`;
+  botao.textContent = texto;
+  botao.setAttribute("aria-label", rotulo || texto);
+  botao.addEventListener("click", acao);
+  return botao;
+}
+
+function abrirWhatsApp(orcamento) {
+  const telefone = orcamento.telefone.replace(/\D/g, "");
+  const numero = telefone.startsWith("55") ? telefone : `55${telefone}`;
+  const mensagemWhatsapp = `Olá, ${orcamento.cliente}. Tudo bem? Estou entrando em contato para acompanhar o orçamento realizado conosco. Fico à disposição para esclarecer qualquer dúvida.`;
+  window.open(`https://wa.me/${numero}?text=${encodeURIComponent(mensagemWhatsapp)}`, "_blank", "noopener,noreferrer");
+}
+
+async function registrarContato(id) {
+  const hoje = bibliotecaDayjsDisponivel ? dayjs().format("YYYY-MM-DD") : new Date().toISOString().slice(0, 10);
+  orcamentos = orcamentos.map((item) => item.id === id ? { ...item, ultimoContato: hoje, proximoContato: calcularProximoContato(hoje), status: "pendente" } : item);
+  salvarOrcamentos();
+  renderizarOrcamentos();
+  exibirToast("Contato registrado. Próximo acompanhamento em 8 dias.");
+}
+
+async function concluirOrcamento(id) {
+  const orcamento = orcamentos.find((item) => item.id === id);
+  if (!orcamento) return;
+  let converter = true;
+  if (typeof Swal !== "undefined") {
+    const resultado = await Swal.fire({
+      icon: "question",
+      title: "Venda concluída",
+      text: "Deseja transformar este orçamento em uma venda agora?",
+      showCancelButton: true,
+      confirmButtonText: "Sim, criar venda",
+      cancelButtonText: "Apenas concluir"
+    });
+    converter = resultado.isConfirmed;
+  }
+  orcamentos = orcamentos.map((item) => item.id === id ? { ...item, status: "concluido" } : item);
+  salvarOrcamentos();
+  renderizarOrcamentos();
+  if (converter) {
+    campoCliente.value = orcamento.cliente;
+    campoValorVenda.value = orcamento.valor;
+    campoDataVenda.value = bibliotecaDayjsDisponivel ? dayjs().format("YYYY-MM-DD") : new Date().toISOString().slice(0, 10);
+    trocarAba("vendas");
+    formulario.scrollIntoView({ behavior: "smooth", block: "center" });
+    exibirToast("Dados enviados ao formulário de venda.");
+  } else exibirToast("Orçamento marcado como venda concluída.");
+}
+
+async function excluirOrcamento(id) {
+  const orcamento = orcamentos.find((item) => item.id === id);
+  if (!orcamento) return;
+  let confirmar = window.confirm(`Excluir o orçamento de ${orcamento.cliente}?`);
+  if (typeof Swal !== "undefined") {
+    const resultado = await Swal.fire({ icon: "warning", title: "Excluir orçamento?", text: "Essa ação não poderá ser desfeita.", showCancelButton: true, confirmButtonText: "Sim, excluir", cancelButtonText: "Cancelar", reverseButtons: true });
+    confirmar = resultado.isConfirmed;
+  }
+  if (!confirmar) return;
+  orcamentos = orcamentos.filter((item) => item.id !== id);
+  salvarOrcamentos();
+  renderizarOrcamentos();
+  exibirToast("Orçamento excluído.");
+}
+
+function renderizarOrcamentos() {
+  if (!listaOrcamentos) return;
+  listaOrcamentos.replaceChildren();
+  const busca = buscaOrcamento.value.trim().toLowerCase();
+  const statusFiltro = filtroStatusOrcamento.value;
+  const filtrados = orcamentos.filter((orcamento) => {
+    const situacao = situacaoOrcamento(orcamento);
+    const correspondeBusca = !busca || orcamento.cliente.toLowerCase().includes(busca) || orcamento.telefone.includes(busca);
+    const correspondeStatus = statusFiltro === "todos" || situacao === statusFiltro;
+    return correspondeBusca && correspondeStatus;
+  }).sort((a, b) => (a.proximoContato || "").localeCompare(b.proximoContato || ""));
+
+  filtrados.forEach((orcamento) => {
+    const situacao = situacaoOrcamento(orcamento);
+    const card = document.createElement("article");
+    card.className = `orcamento-card orcamento-card--${situacao}`;
+    const statusTexto = { pendente: "Pendente", hoje: "Contato hoje", atrasado: "Atrasado", concluido: "Venda concluída" }[situacao];
+    card.innerHTML = `<div class="orcamento-card__cabecalho"><div><strong>${orcamento.cliente}</strong><a href="tel:${orcamento.telefone.replace(/[^\d+]/g, "")}">${orcamento.telefone}</a></div><span class="status status--${situacao}">${statusTexto}</span></div><div class="orcamento-card__dados"><span><small>Valor</small>${formatarMoeda(orcamento.valor)}</span><span><small>Orçamento</small>${formatarData(orcamento.dataOrcamento)}</span><span><small>Próximo contato</small>${orcamento.status === "concluido" ? "Encerrado" : formatarData(orcamento.proximoContato)}</span></div>${orcamento.observacoes ? `<p class="orcamento-card__observacoes">${orcamento.observacoes}</p>` : ""}`;
+    const acoes = document.createElement("div");
+    acoes.className = "orcamento-card__acoes";
+    if (orcamento.status !== "concluido") {
+      acoes.append(
+        criarBotaoOrcamento("WhatsApp", "botao-acao--whatsapp", () => abrirWhatsApp(orcamento)),
+        criarBotaoOrcamento("Contato realizado", "botao-acao--contato", () => registrarContato(orcamento.id)),
+        criarBotaoOrcamento("Venda concluída", "botao-acao--concluir", () => concluirOrcamento(orcamento.id))
+      );
+    }
+    acoes.append(
+      criarBotaoOrcamento("Editar", "botao-acao--editar", () => abrirDialogOrcamento(orcamento.id)),
+      criarBotaoOrcamento("Excluir", "botao-acao--excluir", () => excluirOrcamento(orcamento.id))
+    );
+    card.appendChild(acoes);
+    listaOrcamentos.appendChild(card);
+  });
+
+  semOrcamentos.hidden = filtrados.length > 0;
+  contadorOrcamentos.textContent = String(orcamentos.filter((item) => item.status !== "concluido").length);
+  atualizarResumoContatos();
+}
+
+function atualizarResumoContatos() {
+  const pendentes = orcamentos.filter((item) => ["hoje", "atrasado"].includes(situacaoOrcamento(item)));
+  resumoContatos.textContent = pendentes.length ? `${pendentes.length} contato(s) pendente(s)` : "Nenhum contato pendente";
+  resumoContatos.classList.toggle("acompanhamento__resumo--alerta", pendentes.length > 0);
+}
+
+function alertarContatosPendentes() {
+  const pendentes = orcamentos.filter((item) => ["hoje", "atrasado"].includes(situacaoOrcamento(item)));
+  if (!pendentes.length || typeof Swal === "undefined") return;
+  const itens = pendentes.slice(0, 6).map((item) => `<li><strong>${item.cliente}</strong> — ${situacaoOrcamento(item) === "atrasado" ? "atrasado" : "contato hoje"}</li>`).join("");
+  Swal.fire({ icon: "info", title: "Acompanhamentos pendentes", html: `<p>Você possui ${pendentes.length} cliente(s) para contatar.</p><ul class="alerta-contatos">${itens}</ul>`, confirmButtonText: "Ver orçamentos" }).then(() => trocarAba("orcamentos"));
 }
 
 
@@ -735,6 +1032,15 @@ if ("serviceWorker" in navigator) {
 }
 
 formulario.addEventListener("submit", adicionarVenda);
+if (botaoCancelarEdicao) botaoCancelarEdicao.addEventListener("click", cancelarEdicaoVenda);
+if (abaVendas) abaVendas.addEventListener("click", () => trocarAba("vendas"));
+if (abaOrcamentos) abaOrcamentos.addEventListener("click", () => trocarAba("orcamentos"));
+if (botaoNovoOrcamento) botaoNovoOrcamento.addEventListener("click", () => abrirDialogOrcamento());
+if (fecharDialogOrcamento) fecharDialogOrcamento.addEventListener("click", fecharDialog);
+if (cancelarOrcamento) cancelarOrcamento.addEventListener("click", fecharDialog);
+if (formOrcamento) formOrcamento.addEventListener("submit", salvarOrcamentoFormulario);
+if (buscaOrcamento) buscaOrcamento.addEventListener("input", renderizarOrcamentos);
+if (filtroStatusOrcamento) filtroStatusOrcamento.addEventListener("change", renderizarOrcamentos);
 filtroMes.addEventListener("change", () => renderizarVendas());
 filtroAno.addEventListener("input", () => renderizarVendas());
 botaoLimparFiltros.addEventListener("click", limparFiltros);
@@ -746,3 +1052,5 @@ definirTemaInicial();
 definirDatasIniciais();
 iniciarCarrossel();
 renderizarVendas();
+renderizarOrcamentos();
+window.setTimeout(alertarContatosPendentes, 700);

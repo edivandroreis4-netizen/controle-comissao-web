@@ -52,3 +52,18 @@ Desenvolvido por Edivandro Lima.
 - Exportação das vendas filtradas em CSV compatível com Excel e Google Planilhas.
 - Tema claro e escuro com preferência salva no localStorage.
 - O relatório CSV inclui data, cliente, valor da venda, comissão e percentual.
+
+
+## Atualização: edição e acompanhamento de orçamentos
+
+- Edição de vendas já registradas, sem duplicar o histórico.
+- Exclusão individual com confirmação.
+- Cadastro, edição e exclusão de orçamentos.
+- Alertas de contato a cada 8 dias ao abrir o aplicativo.
+- Ação de WhatsApp com mensagem pronta.
+- Registro de contato realizado e novo prazo automático.
+- Conversão de orçamento em venda.
+- Filtros por busca e status.
+- Armazenamento separado em localStorage.
+
+> Sem backend, os alertas aparecem quando o aplicativo é aberto ou atualizado.
