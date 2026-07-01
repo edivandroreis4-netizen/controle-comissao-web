@@ -1,5 +1,4 @@
-const CACHE_VERSION = "comissao-v8-orcamentos-edicao";
-
+const CACHE_VERSION = "comissao-v9-rotacao";
 const APP_SHELL = [
   "./",
   "./index.html",
