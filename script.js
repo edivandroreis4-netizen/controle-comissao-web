@@ -1,8 +1,10 @@
-const TAXA_COMISSAO = 0.02;
+let TAXA_COMISSAO = 0.02;
 const CHAVE_LOCAL_STORAGE = "vendasComissao";
 const CHAVE_META_ATINGIDA = "ultimaMetaAtingida";
 const CHAVE_TEMA = "temaControleComissao";
 const CHAVE_ORCAMENTOS = "orcamentosComissao";
+const CHAVE_PERFIL_VENDEDOR = "perfilVendedorComissao";
+const FOTO_PADRAO_VENDEDOR = "assets/foto-vendedor-padrao.svg";
 const INTERVALO_CONTATO_DIAS = 8;
 const METAS = [
   { valor: 200000, bonus: 400 },
@@ -109,14 +111,171 @@ const listaOrcamentos = document.querySelector("#lista-orcamentos");
 const semOrcamentos = document.querySelector("#sem-orcamentos");
 const buscaOrcamento = document.querySelector("#busca-orcamento");
 const filtroStatusOrcamento = document.querySelector("#filtro-status-orcamento");
+const fotoVendedor = document.querySelector("#foto-vendedor");
+const nomeVendedorExibicao = document.querySelector("#nome-vendedor-exibicao");
+const taxaComissaoExibicao = document.querySelector("#taxa-comissao-exibicao");
+const metaPessoalExibicao = document.querySelector("#meta-pessoal-exibicao");
+const metaPessoalProgresso = document.querySelector("#meta-pessoal-progresso");
+const tituloComissaoResumo = document.querySelector("#titulo-comissao-resumo");
+const botaoAbrirPerfil = document.querySelector("#botao-abrir-perfil");
+const dialogPerfil = document.querySelector("#dialog-perfil");
+const formPerfil = document.querySelector("#form-perfil");
+const fecharDialogPerfil = document.querySelector("#fechar-dialog-perfil");
+const cancelarPerfil = document.querySelector("#cancelar-perfil");
+const campoNomeVendedor = document.querySelector("#nome-vendedor");
+const campoPercentualComissao = document.querySelector("#percentual-comissao");
+const campoMetaMensal = document.querySelector("#meta-mensal-vendedor");
+const campoArquivoFoto = document.querySelector("#arquivo-foto-vendedor");
+const previewFotoVendedor = document.querySelector("#preview-foto-vendedor");
+const botaoRemoverFoto = document.querySelector("#remover-foto-vendedor");
 
+let perfilVendedor = carregarPerfilVendedor();
+TAXA_COMISSAO = perfilVendedor.percentualComissao / 100;
 let vendas = carregarVendas();
 let orcamentos = carregarOrcamentos();
+let fotoTemporariaPerfil = perfilVendedor.foto;
 let vendaEmEdicaoId = null;
 let orcamentoEmEdicaoId = null;
 let carrosselInsights;
 let graficoVendas;
 let eventoInstalacaoPwa;
+
+function carregarPerfilVendedor() {
+  const padrao = {
+    nome: "Vendedor",
+    foto: FOTO_PADRAO_VENDEDOR,
+    percentualComissao: 2,
+    metaMensal: 200000
+  };
+
+  try {
+    const salvo = JSON.parse(localStorage.getItem(CHAVE_PERFIL_VENDEDOR) || "null");
+    if (!salvo || typeof salvo !== "object") return padrao;
+    const percentual = Number(salvo.percentualComissao);
+    const meta = Number(salvo.metaMensal);
+    return {
+      nome: String(salvo.nome || padrao.nome).trim().slice(0, 60) || padrao.nome,
+      foto: typeof salvo.foto === "string" && salvo.foto ? salvo.foto : padrao.foto,
+      percentualComissao: Number.isFinite(percentual) && percentual > 0 && percentual <= 100 ? percentual : padrao.percentualComissao,
+      metaMensal: Number.isFinite(meta) && meta > 0 ? meta : padrao.metaMensal
+    };
+  } catch (erro) {
+    console.error("Erro ao carregar o perfil do vendedor:", erro);
+    return padrao;
+  }
+}
+
+function salvarPerfilVendedor() {
+  localStorage.setItem(CHAVE_PERFIL_VENDEDOR, JSON.stringify(perfilVendedor));
+}
+
+function aplicarPerfilVendedor() {
+  TAXA_COMISSAO = perfilVendedor.percentualComissao / 100;
+  if (fotoVendedor) fotoVendedor.src = perfilVendedor.foto || FOTO_PADRAO_VENDEDOR;
+  if (nomeVendedorExibicao) nomeVendedorExibicao.textContent = perfilVendedor.nome;
+  if (taxaComissaoExibicao) taxaComissaoExibicao.textContent = `${perfilVendedor.percentualComissao.toLocaleString("pt-BR", { maximumFractionDigits: 2 })}%`;
+  if (metaPessoalExibicao) metaPessoalExibicao.textContent = formatarMoeda(perfilVendedor.metaMensal);
+  if (tituloComissaoResumo) tituloComissaoResumo.textContent = `Comissão de ${perfilVendedor.percentualComissao.toLocaleString("pt-BR", { maximumFractionDigits: 2 })}%`;
+}
+
+function abrirConfiguracaoPerfil() {
+  if (!dialogPerfil) return;
+  campoNomeVendedor.value = perfilVendedor.nome;
+  campoPercentualComissao.value = perfilVendedor.percentualComissao;
+  campoMetaMensal.value = perfilVendedor.metaMensal;
+  fotoTemporariaPerfil = perfilVendedor.foto || FOTO_PADRAO_VENDEDOR;
+  previewFotoVendedor.src = fotoTemporariaPerfil;
+  if (typeof dialogPerfil.showModal === "function") dialogPerfil.showModal();
+  else dialogPerfil.setAttribute("open", "");
+  campoNomeVendedor.focus();
+}
+
+function fecharConfiguracaoPerfil() {
+  if (!dialogPerfil) return;
+  if (typeof dialogPerfil.close === "function") dialogPerfil.close();
+  else dialogPerfil.removeAttribute("open");
+}
+
+function recortarFotoQuadrada(arquivo) {
+  return new Promise((resolve, reject) => {
+    const leitor = new FileReader();
+    leitor.onerror = () => reject(new Error("Não foi possível ler a imagem."));
+    leitor.onload = () => {
+      const imagem = new Image();
+      imagem.onerror = () => reject(new Error("A imagem selecionada é inválida."));
+      imagem.onload = () => {
+        const tamanhoOrigem = Math.min(imagem.naturalWidth, imagem.naturalHeight);
+        const origemX = (imagem.naturalWidth - tamanhoOrigem) / 2;
+        const origemY = (imagem.naturalHeight - tamanhoOrigem) / 2;
+        const canvas = document.createElement("canvas");
+        canvas.width = 512;
+        canvas.height = 512;
+        const contexto = canvas.getContext("2d");
+        contexto.drawImage(imagem, origemX, origemY, tamanhoOrigem, tamanhoOrigem, 0, 0, 512, 512);
+        resolve(canvas.toDataURL("image/jpeg", 0.84));
+      };
+      imagem.src = leitor.result;
+    };
+    leitor.readAsDataURL(arquivo);
+  });
+}
+
+async function selecionarFotoPerfil(evento) {
+  const arquivo = evento.target.files?.[0];
+  if (!arquivo) return;
+  const tiposPermitidos = ["image/jpeg", "image/png", "image/webp"];
+  if (!tiposPermitidos.includes(arquivo.type)) {
+    exibirAlertaErro("Formato inválido", "Escolha uma imagem JPG, PNG ou WebP.");
+    evento.target.value = "";
+    return;
+  }
+  if (arquivo.size > 1024 * 1024) {
+    exibirAlertaErro("Imagem muito grande", "Escolha uma imagem de até 1 MB.");
+    evento.target.value = "";
+    return;
+  }
+  try {
+    fotoTemporariaPerfil = await recortarFotoQuadrada(arquivo);
+    previewFotoVendedor.src = fotoTemporariaPerfil;
+  } catch (erro) {
+    exibirAlertaErro("Não foi possível carregar a foto", erro.message);
+  } finally {
+    evento.target.value = "";
+  }
+}
+
+function removerFotoPerfil() {
+  fotoTemporariaPerfil = FOTO_PADRAO_VENDEDOR;
+  previewFotoVendedor.src = FOTO_PADRAO_VENDEDOR;
+}
+
+function salvarConfiguracaoPerfil(evento) {
+  evento.preventDefault();
+  const nome = campoNomeVendedor.value.trim();
+  const percentualComissao = Number(campoPercentualComissao.value);
+  const metaMensal = Number(campoMetaMensal.value);
+  if (nome.length < 2) {
+    exibirAlertaErro("Nome inválido", "Digite um nome com pelo menos 2 caracteres.");
+    campoNomeVendedor.focus();
+    return;
+  }
+  if (!Number.isFinite(percentualComissao) || percentualComissao <= 0 || percentualComissao > 100) {
+    exibirAlertaErro("Comissão inválida", "Informe um percentual maior que 0 e de até 100%.");
+    campoPercentualComissao.focus();
+    return;
+  }
+  if (!Number.isFinite(metaMensal) || metaMensal <= 0) {
+    exibirAlertaErro("Meta inválida", "Informe uma meta mensal maior que zero.");
+    campoMetaMensal.focus();
+    return;
+  }
+  perfilVendedor = { nome, foto: fotoTemporariaPerfil || FOTO_PADRAO_VENDEDOR, percentualComissao, metaMensal };
+  salvarPerfilVendedor();
+  aplicarPerfilVendedor();
+  renderizarVendas();
+  fecharConfiguracaoPerfil();
+  exibirToast("Perfil do vendedor atualizado.");
+}
 
 function carregarVendas() {
   const vendasSalvas = localStorage.getItem(CHAVE_LOCAL_STORAGE);
@@ -130,6 +289,7 @@ function carregarVendas() {
         ...venda,
         id: venda.id || crypto.randomUUID(),
         valor,
+        percentualComissao: Number.isFinite(Number(venda.percentualComissao)) ? Number(venda.percentualComissao) : perfilVendedor.percentualComissao,
         comissao: Number.isFinite(Number(venda.comissao)) ? Number(venda.comissao) : calcularComissao(valor),
         cliente: String(venda.cliente || ""),
         data: venda.data || ""
@@ -460,6 +620,13 @@ function celebrarMeta(meta) {
 }
 
 function atualizarMetas(totalVendido, dispararCelebracao = false) {
+  if (metaPessoalProgresso) {
+    const percentualPessoal = Math.min((totalVendido / perfilVendedor.metaMensal) * 100, 100);
+    const faltantePessoal = Math.max(perfilVendedor.metaMensal - totalVendido, 0);
+    metaPessoalProgresso.textContent = faltantePessoal > 0
+      ? `${percentualPessoal.toFixed(1).replace(".", ",")}% alcançado • faltam ${formatarMoeda(faltantePessoal)}`
+      : "Meta pessoal atingida";
+  }
   const proximaMeta = METAS.find((meta) => totalVendido < meta.valor) || null;
   const maiorMetaAtingida = obterMaiorMetaAtingida(totalVendido);
   const ultimaMetaAtingida = Number(localStorage.getItem(CHAVE_META_ATINGIDA) || 0);
@@ -620,6 +787,7 @@ function adicionarVenda(evento) {
   const novaVenda = {
     id: vendaEmEdicaoId || crypto.randomUUID(),
     valor: dadosFormulario.valor,
+    percentualComissao: perfilVendedor.percentualComissao,
     comissao: calcularComissao(dadosFormulario.valor),
     data: dadosFormulario.data,
     cliente: dadosFormulario.cliente
@@ -894,7 +1062,7 @@ function renderizarOrcamentos() {
       acoes.append(
         criarBotaoOrcamento("WhatsApp", "botao-acao--whatsapp", () => abrirWhatsApp(orcamento)),
         criarBotaoOrcamento("Contato realizado", "botao-acao--contato", () => registrarContato(orcamento.id)),
-        criarBotaoOrcamento("Venda concluída", "botao-acao--concluir", () => concluirOrcamento(orcamento.id))
+        criarBotaoOrcamento("Venda concluída", "botao-acao--concluir botao-acao--destaque", () => concluirOrcamento(orcamento.id))
       );
     }
     acoes.append(
@@ -945,7 +1113,7 @@ function exportarVendasCsv() {
     venda.cliente || "Não informado",
     venda.valor.toFixed(2).replace(".", ","),
     venda.comissao.toFixed(2).replace(".", ","),
-    `${(TAXA_COMISSAO * 100).toFixed(2).replace(".", ",")}%`
+    `${Number(venda.percentualComissao ?? perfilVendedor.percentualComissao).toFixed(2).replace(".", ",")}%`
   ]);
 
   const conteudo = [cabecalho, ...linhas]
@@ -1047,8 +1215,18 @@ botaoLimparFiltros.addEventListener("click", limparFiltros);
 botaoApagarTudo.addEventListener("click", apagarTodasAsVendas);
 if (botaoExportarCsv) botaoExportarCsv.addEventListener("click", exportarVendasCsv);
 if (botaoTema) botaoTema.addEventListener("click", alternarTema);
+if (botaoAbrirPerfil) botaoAbrirPerfil.addEventListener("click", abrirConfiguracaoPerfil);
+if (fecharDialogPerfil) fecharDialogPerfil.addEventListener("click", fecharConfiguracaoPerfil);
+if (cancelarPerfil) cancelarPerfil.addEventListener("click", fecharConfiguracaoPerfil);
+if (formPerfil) formPerfil.addEventListener("submit", salvarConfiguracaoPerfil);
+if (campoArquivoFoto) campoArquivoFoto.addEventListener("change", selecionarFotoPerfil);
+if (botaoRemoverFoto) botaoRemoverFoto.addEventListener("click", removerFotoPerfil);
+if (dialogPerfil) dialogPerfil.addEventListener("click", (evento) => {
+  if (evento.target === dialogPerfil) fecharConfiguracaoPerfil();
+});
 
 definirTemaInicial();
+aplicarPerfilVendedor();
 definirDatasIniciais();
 iniciarCarrossel();
 renderizarVendas();

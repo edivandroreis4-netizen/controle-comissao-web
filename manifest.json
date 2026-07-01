@@ -1,7 +1,7 @@
 {
   "name": "Controle de Vendas e Comissão",
   "short_name": "Comissão",
-  "description": "Aplicativo para registrar vendas, acompanhar comissão de 2%, insights e metas.",
+  "description": "Aplicativo personalizável para registrar vendas, acompanhar comissões, orçamentos, insights e metas.",
   "lang": "pt-BR",
   "start_url": "./",
   "scope": "./",

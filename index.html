@@ -29,14 +29,23 @@
       </div>
 
       <section class="perfil">
-        <img src="assets/edivandro-lima.jpg" alt="Foto de perfil de Edivandro Lima" class="perfil__foto">
-        <h1>Edivandro Lima</h1>
+        <div class="perfil__foto-wrap">
+          <img id="foto-vendedor" src="assets/foto-vendedor-padrao.svg" alt="Foto do vendedor" class="perfil__foto">
+          <button type="button" id="botao-abrir-perfil" class="perfil__editar" aria-label="Alterar foto e dados do vendedor">Alterar perfil</button>
+        </div>
+        <h1 id="nome-vendedor-exibicao">Vendedor</h1>
         <p>Controle diário de vendas e comissão</p>
       </section>
 
       <div class="taxa">
         <span>Taxa de comissão</span>
-        <strong>2%</strong>
+        <strong id="taxa-comissao-exibicao">2%</strong>
+      </div>
+
+      <div class="sidebar__meta-mini sidebar__meta-pessoal">
+        <span class="sidebar__meta-legenda">Meta mensal pessoal</span>
+        <strong id="meta-pessoal-exibicao">R$ 200.000,00</strong>
+        <small id="meta-pessoal-progresso">Configurável no perfil do vendedor</small>
       </div>
 
       <div class="sidebar__meta-mini" id="sidebar-meta-mini">
@@ -82,7 +91,7 @@
         </article>
 
         <article class="card-resumo card-resumo--destaque">
-          <span>Comissão de 2%</span>
+          <span id="titulo-comissao-resumo">Comissão de 2%</span>
           <strong id="total-comissao">R$ 0,00</strong>
           <small>Valor estimado a receber</small>
         </article>
@@ -247,7 +256,7 @@
             </div>
 
             <div class="acoes-formulario campo--total">
-              <button type="submit" id="botao-salvar-venda" class="botao botao--principal">Registrar venda</button>
+              <button type="submit" id="botao-salvar-venda" class="botao botao--principal botao--pulso">Registrar venda</button>
               <button type="button" id="botao-cancelar-edicao" class="botao botao--secundario" hidden>Cancelar edição</button>
             </div>
           </form>
@@ -341,7 +350,7 @@
               <strong>Acompanhamento a cada 8 dias</strong>
               <p>Os alertas aparecem ao abrir ou atualizar o aplicativo.</p>
             </div>
-            <button type="button" id="botao-novo-orcamento" class="botao botao--principal">+ Novo orçamento</button>
+            <button type="button" id="botao-novo-orcamento" class="botao botao--principal botao--pulso">+ Novo orçamento</button>
           </div>
 
           <div class="filtros-orcamentos">
@@ -402,8 +411,62 @@
         </form>
       </dialog>
 
+      <dialog id="dialog-perfil" class="dialog-perfil" aria-labelledby="titulo-dialog-perfil">
+        <form id="form-perfil" class="dialog-perfil__conteudo" novalidate>
+          <div class="dialog-perfil__cabecalho">
+            <div>
+              <span class="card__legenda">Personalização</span>
+              <h3 id="titulo-dialog-perfil">Configurar perfil do vendedor</h3>
+            </div>
+            <button type="button" id="fechar-dialog-perfil" class="dialog-fechar" aria-label="Fechar configuração do perfil">×</button>
+          </div>
+
+          <div class="perfil-config__preview">
+            <img id="preview-foto-vendedor" src="assets/foto-vendedor-padrao.svg" alt="Pré-visualização da foto do vendedor">
+            <div>
+              <label for="arquivo-foto-vendedor" class="botao botao--secundario perfil-config__arquivo">Alterar foto</label>
+              <input id="arquivo-foto-vendedor" type="file" accept="image/jpeg,image/png,image/webp" hidden>
+              <button type="button" id="remover-foto-vendedor" class="botao botao--perigo">Remover foto</button>
+              <small>JPG, PNG ou WebP, com até 1 MB. A imagem será ajustada para formato quadrado.</small>
+            </div>
+          </div>
+
+          <div class="perfil-config__campos">
+            <div class="campo campo--total">
+              <label for="nome-vendedor">Nome do vendedor</label>
+              <input id="nome-vendedor" type="text" maxlength="60" placeholder="Digite o nome do vendedor" required>
+            </div>
+            <div class="campo">
+              <label for="percentual-comissao">Percentual da comissão</label>
+              <div class="campo-sufixo">
+                <input id="percentual-comissao" type="number" min="0.01" max="100" step="0.01" inputmode="decimal" required>
+                <span>%</span>
+              </div>
+            </div>
+            <div class="campo">
+              <label for="meta-mensal-vendedor">Meta mensal</label>
+              <div class="campo-moeda">
+                <span aria-hidden="true">R$</span>
+                <input id="meta-mensal-vendedor" type="number" min="0.01" step="0.01" inputmode="decimal" required>
+              </div>
+            </div>
+          </div>
+
+          <div class="dialog-perfil__acoes">
+            <button type="button" id="cancelar-perfil" class="botao botao--secundario">Cancelar</button>
+            <button type="submit" class="botao botao--principal">Salvar perfil</button>
+          </div>
+        </form>
+      </dialog>
+
       <footer class="rodape">
-        <p>Desenvolvido por <strong>Edivandro Lima</strong></p>
+        <div class="autor-card">
+          <img src="assets/edivandro-lima.jpg" alt="Foto de Edivandro Lima, desenvolvedor do projeto">
+          <div>
+            <span>Desenvolvido por</span>
+            <strong>Edivandro Lima</strong>
+          </div>
+        </div>
       </footer>
     </main>
   </div>

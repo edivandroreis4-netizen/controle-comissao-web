@@ -1,4 +1,5 @@
-const CACHE_VERSION = "comissao-v9-rotacao";
+const CACHE_VERSION = "comissao-v10-perfil-vendedor";
+
 const APP_SHELL = [
   "./",
   "./index.html",
@@ -7,6 +8,7 @@ const APP_SHELL = [
   "./manifest.json",
   "./offline.html",
   "./assets/edivandro-lima.jpg",
+  "./assets/foto-vendedor-padrao.svg",
   "./icons/icon-192.png",
   "./icons/icon-512.png",
   "./icons/maskable-icon-512.png"

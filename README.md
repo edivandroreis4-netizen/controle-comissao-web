@@ -67,3 +67,16 @@ Desenvolvido por Edivandro Lima.
 - Armazenamento separado em localStorage.
 
 > Sem backend, os alertas aparecem quando o aplicativo é aberto ou atualizado.
+
+
+## Atualização: perfil personalizável e destaques
+
+- Foto principal configurável pelo vendedor.
+- Seleção pela galeria em JPG, PNG ou WebP, com limite de 1 MB.
+- Corte central automático para formato quadrado.
+- Nome, percentual de comissão e meta mensal salvos no localStorage.
+- Botões para alterar e remover foto.
+- Foto e crédito do desenvolvedor preservados em um card pequeno no rodapé.
+- Efeito de destaque suave em Registrar venda e Novo orçamento.
+- Botão Venda concluída destacado em verde enquanto o orçamento estiver ativo.
+- PWA compatível com orientação vertical e horizontal.
